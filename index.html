@@ -1,0 +1,2276 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <meta
+    name="description"
+    content="The 3D Printer — impression 3D, objets personnalisés et prototypage."
+  >
+
+  <title>The 3D Printer</title>
+
+  <link rel="icon" type="image/png" href="https://media.base44.com/images/public/6a3aa98df65cee997e2fec25/d05e54715_5dc10467-5b9a-48e5-beea-3bd4166c3e64.png">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+
+  <link
+    rel="preconnect"
+    href="https://fonts.gstatic.com"
+    crossorigin
+  >
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+    rel="stylesheet"
+  >
+
+  <style>
+    /* =====================================================
+       VARIABLES
+    ===================================================== */
+
+    :root {
+      --background: #f5f3ef;
+      --surface: #ffffff;
+      --surface-dark: #121212;
+      --text: #161616;
+      --text-light: #666666;
+      --border: #d9d6d0;
+      --accent: #ff6b35;
+      --accent-dark: #de4f1d;
+      --radius-small: 14px;
+      --radius-medium: 24px;
+      --radius-large: 38px;
+      --shadow: 0 18px 55px rgba(0, 0, 0, 0.09);
+      --container: 1240px;
+    }
+
+
+    /* =====================================================
+       RESET
+    ===================================================== */
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      min-height: 100vh;
+      overflow-x: hidden;
+      background: var(--background);
+      color: var(--text);
+      font-family: "Inter", Arial, sans-serif;
+      line-height: 1.5;
+    }
+
+    img {
+      display: block;
+      width: 100%;
+      max-width: 100%;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .container {
+      width: min(calc(100% - 40px), var(--container));
+      margin-inline: auto;
+    }
+
+    .section {
+      padding: 90px 0;
+    }
+
+    .eyebrow {
+      margin-bottom: 18px;
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+
+    /* =====================================================
+       HEADER
+    ===================================================== */
+
+    .site-header {
+      position: sticky;
+      top: 16px;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: min(calc(100% - 32px), var(--container));
+      min-height: 82px;
+      margin: 16px auto 0;
+      padding: 12px 18px 12px 14px;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: 0 12px 45px rgba(0, 0, 0, 0.08);
+      backdrop-filter: blur(18px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: auto;
+      height: 56px;
+      flex-shrink: 0;
+    }
+
+    .brand-logo {
+      width: 48px;
+      height: 48px;
+      flex-shrink: 0;
+      overflow: hidden;
+      border-radius: var(--radius-small);
+      background: #ffffff;
+      border: 1px solid var(--border);
+      object-fit: contain;
+      object-position: center;
+      padding: 4px;
+    }
+
+    .brand-name {
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+      text-transform: uppercase;
+    }
+
+    .brand-name span {
+      color: var(--accent);
+    }
+
+    .main-nav {
+      display: flex;
+      align-items: center;
+      gap: 34px;
+    }
+
+    .main-nav a {
+      position: relative;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .main-nav a::after {
+      position: absolute;
+      bottom: -6px;
+      left: 0;
+      width: 0;
+      height: 2px;
+      border-radius: 999px;
+      background: var(--accent);
+      content: "";
+      transition: width 0.25s ease;
+    }
+
+    .main-nav a:hover::after {
+      width: 100%;
+    }
+
+    .menu-toggle {
+      display: none;
+      width: 44px;
+      height: 44px;
+      border: 0;
+      border-radius: 14px;
+      background: #111111;
+    }
+
+    .menu-toggle span {
+      display: block;
+      width: 20px;
+      height: 2px;
+      margin: 5px auto;
+      border-radius: 999px;
+      background: #ffffff;
+    }
+
+
+    /* =====================================================
+       HERO
+    ===================================================== */
+
+    .hero {
+      position: relative;
+      min-height: 720px;
+      width: min(calc(100% - 32px), var(--container));
+      margin: 22px auto 0;
+      overflow: hidden;
+      border-radius: var(--radius-large);
+      background:
+        radial-gradient(
+          circle at 80% 20%,
+          rgba(255, 107, 53, 0.35),
+          transparent 35%
+        ),
+        linear-gradient(135deg, #111111, #2a2a2a);
+      color: #ffffff;
+    }
+
+    .hero-background {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      border-radius: inherit;
+    }
+
+    .hero-background::before {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      background:
+        linear-gradient(
+          90deg,
+          rgba(0, 0, 0, 0.88) 0%,
+          rgba(0, 0, 0, 0.58) 48%,
+          rgba(0, 0, 0, 0.2) 100%
+        );
+      content: "";
+    }
+
+    .hero-background::after {
+      position: absolute;
+      top: 50%;
+      right: 8%;
+      width: 420px;
+      height: 420px;
+      transform: translateY(-50%);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 50%;
+      background:
+        radial-gradient(
+          circle,
+          rgba(255, 107, 53, 0.18),
+          transparent 68%
+        );
+      content: "";
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      min-height: 720px;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 90px 0;
+    }
+
+    .hero h1 {
+      max-width: 800px;
+      font-size: clamp(58px, 9vw, 132px);
+      font-weight: 900;
+      line-height: 0.84;
+      letter-spacing: -0.07em;
+      text-transform: uppercase;
+    }
+
+    .hero h1 span {
+      color: var(--accent);
+    }
+
+    .hero-copy {
+      max-width: 610px;
+      margin-top: 32px;
+      color: rgba(255, 255, 255, 0.75);
+      font-size: 17px;
+      line-height: 1.75;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-top: 38px;
+    }
+
+    .button {
+      display: inline-flex;
+      min-height: 52px;
+      align-items: center;
+      justify-content: center;
+      padding: 0 24px;
+      border: 1px solid transparent;
+      border-radius: 16px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      transition:
+        transform 0.25s ease,
+        background 0.25s ease,
+        border-color 0.25s ease;
+    }
+
+    .button:hover {
+      transform: translateY(-3px);
+    }
+
+    .button-primary {
+      background: var(--accent);
+      color: #ffffff;
+    }
+
+    .button-primary:hover {
+      background: var(--accent-dark);
+    }
+
+    .button-secondary {
+      border-color: rgba(255, 255, 255, 0.38);
+      background: rgba(255, 255, 255, 0.08);
+      color: #ffffff;
+      backdrop-filter: blur(12px);
+    }
+
+    .button-secondary:hover {
+      background: rgba(255, 255, 255, 0.16);
+    }
+
+
+    /* =====================================================
+       CATALOGUE
+    ===================================================== */
+
+    .catalog-heading {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      align-items: end;
+      margin-bottom: 46px;
+    }
+
+    .catalog-heading h2,
+    .section-title {
+      font-size: clamp(42px, 6vw, 78px);
+      font-weight: 900;
+      line-height: 0.98;
+      letter-spacing: -0.055em;
+    }
+
+    .catalog-heading > p {
+      max-width: 570px;
+      color: var(--text-light);
+      font-size: 16px;
+      line-height: 1.75;
+    }
+
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 24px;
+    }
+
+    .product-card {
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-medium);
+      background: var(--surface);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
+      cursor: pointer;
+      transition:
+        transform 0.3s ease,
+        box-shadow 0.3s ease;
+    }
+
+    .products-loading,
+    .products-error {
+      grid-column: 1 / -1;
+      padding: 60px 20px;
+      text-align: center;
+      color: var(--text-light);
+    }
+
+    .product-card:hover {
+      transform: translateY(-7px);
+      box-shadow: var(--shadow);
+    }
+
+    .product-image {
+      height: 310px;
+      margin: 10px;
+      overflow: hidden;
+      border-radius: 18px;
+      background: #ece9e4;
+    }
+
+    .product-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.45s ease;
+    }
+
+    .product-card:hover .product-image img {
+      transform: scale(1.045);
+    }
+
+    .product-content {
+      padding: 20px 22px 24px;
+    }
+
+    .product-category {
+      margin-bottom: 8px;
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .product-content h3 {
+      margin-bottom: 10px;
+      font-size: 21px;
+      font-weight: 800;
+      line-height: 1.2;
+    }
+
+    .product-price {
+      color: var(--text-light);
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+
+    /* =====================================================
+       SAVOIR-FAIRE
+    ===================================================== */
+
+    .craft {
+      padding-top: 30px;
+    }
+
+    .craft-wrapper {
+      display: grid;
+      grid-template-columns: 1.08fr 0.92fr;
+      gap: 70px;
+      align-items: center;
+      overflow: hidden;
+      padding: 24px;
+      border-radius: var(--radius-large);
+      background: #161616;
+      color: #ffffff;
+    }
+
+    .craft-image {
+      min-height: 620px;
+      overflow: hidden;
+      border-radius: 26px;
+      background: #262626;
+    }
+
+    .craft-image img {
+      width: 100%;
+      height: 100%;
+      min-height: 620px;
+      object-fit: cover;
+    }
+
+    .craft-content {
+      padding: 45px 45px 45px 0;
+    }
+
+    .craft-content h2 {
+      margin-bottom: 28px;
+      font-size: clamp(42px, 5vw, 72px);
+      font-weight: 900;
+      line-height: 0.98;
+      letter-spacing: -0.055em;
+    }
+
+    .craft-content h2 span {
+      color: var(--accent);
+    }
+
+    .craft-content > p:not(.eyebrow) {
+      max-width: 550px;
+      margin-bottom: 17px;
+      color: rgba(255, 255, 255, 0.68);
+      line-height: 1.75;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+      margin-top: 38px;
+    }
+
+    .metric {
+      min-height: 120px;
+      padding: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.11);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.045);
+    }
+
+    .metric strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 25px;
+    }
+
+    .metric span {
+      color: rgba(255, 255, 255, 0.53);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+
+    /* =====================================================
+       PROCESSUS
+    ===================================================== */
+
+    .process-grid {
+      display: grid;
+      grid-template-columns: 0.8fr 1.2fr;
+      gap: 70px;
+      align-items: start;
+    }
+
+    .process-intro p:not(.eyebrow) {
+      max-width: 480px;
+      margin-top: 25px;
+      color: var(--text-light);
+      line-height: 1.75;
+    }
+
+    .steps {
+      display: grid;
+      gap: 16px;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 85px 1fr;
+      gap: 20px;
+      align-items: center;
+      padding: 28px;
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      background: #ffffff;
+    }
+
+    .step-number {
+      color: var(--accent);
+      font-size: 31px;
+      font-weight: 900;
+    }
+
+    .step h3 {
+      margin-bottom: 7px;
+      font-size: 21px;
+    }
+
+    .step p {
+      color: var(--text-light);
+    }
+
+
+    /* =====================================================
+       CONTACT
+    ===================================================== */
+
+    .contact-box {
+      display: grid;
+      grid-template-columns: 0.85fr 1.15fr;
+      gap: 60px;
+      padding: 65px;
+      border-radius: var(--radius-large);
+      background: #ffffff;
+      box-shadow: var(--shadow);
+    }
+
+    .contact-intro h2 {
+      font-size: clamp(42px, 5vw, 68px);
+      font-weight: 900;
+      line-height: 0.98;
+      letter-spacing: -0.055em;
+    }
+
+    .contact-intro h2 span {
+      color: var(--accent);
+    }
+
+    .contact-intro > p:not(.eyebrow) {
+      margin-top: 26px;
+      color: var(--text-light);
+      line-height: 1.75;
+    }
+
+    .contact-details {
+      display: grid;
+      gap: 12px;
+      margin-top: 35px;
+      font-weight: 700;
+    }
+
+    .contact-form {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    .contact-form label {
+      display: grid;
+      gap: 9px;
+      color: #555555;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .contact-form label.full {
+      grid-column: 1 / -1;
+    }
+
+    .contact-form input,
+    .contact-form select,
+    .contact-form textarea {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      outline: none;
+      background: #f8f7f4;
+      color: var(--text);
+      transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+    }
+
+    .contact-form input,
+    .contact-form select {
+      height: 52px;
+      padding: 0 15px;
+    }
+
+    .contact-form textarea {
+      min-height: 145px;
+      resize: vertical;
+      padding: 15px;
+    }
+
+    .contact-form input:focus,
+    .contact-form select:focus,
+    .contact-form textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px rgba(255, 107, 53, 0.1);
+    }
+
+    .submit-button {
+      grid-column: 1 / -1;
+      border: 0;
+    }
+
+    .submit-button:disabled {
+      cursor: wait;
+      opacity: 0.7;
+      transform: none;
+    }
+
+    .botcheck {
+      position: absolute !important;
+      left: -9999px !important;
+      width: 1px !important;
+      height: 1px !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+
+    .contact-form input[type="file"] {
+      height: auto;
+      min-height: 52px;
+      padding: 8px;
+      cursor: pointer;
+    }
+
+    .contact-form input[type="file"]::file-selector-button {
+      margin-right: 12px;
+      padding: 10px 14px;
+      border: 0;
+      border-radius: 10px;
+      background: #161616;
+      color: #ffffff;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .file-hint {
+      color: var(--text-light);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0;
+      line-height: 1.5;
+      text-transform: none;
+    }
+
+    .form-status {
+      display: none;
+      padding: 14px 16px;
+      border-radius: 14px;
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.5;
+    }
+
+    .form-status.is-visible {
+      display: block;
+    }
+
+    .contact-form .form-status {
+      grid-column: 1 / -1;
+    }
+
+    .form-status.is-success {
+      border: 1px solid rgba(47, 168, 79, 0.25);
+      background: rgba(47, 168, 79, 0.1);
+      color: #1d7435;
+    }
+
+    .form-status.is-error {
+      border: 1px solid rgba(192, 57, 43, 0.25);
+      background: rgba(192, 57, 43, 0.1);
+      color: #9d2f24;
+    }
+
+
+    /* =====================================================
+       FOOTER
+    ===================================================== */
+
+    .site-footer {
+      padding: 30px 0 45px;
+    }
+
+    .footer-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 25px;
+      padding: 25px 30px;
+      border-radius: 22px;
+      background: #151515;
+      color: #ffffff;
+    }
+
+    .footer-inner img {
+      width: 45px;
+      height: 45px;
+      border-radius: 12px;
+      object-fit: contain;
+      background: #ffffff;
+      padding: 4px;
+      flex-shrink: 0;
+    }
+
+    .footer-inner p {
+      color: rgba(255, 255, 255, 0.55);
+      font-size: 13px;
+    }
+
+
+    /* =====================================================
+       MODAL PRODUIT / COMMANDE
+    ===================================================== */
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 2000;
+      display: none;
+      align-items: flex-start;
+      justify-content: center;
+      overflow-y: auto;
+      padding: 40px 20px;
+      background: rgba(15, 15, 15, 0.6);
+      backdrop-filter: blur(4px);
+    }
+
+    .modal-overlay.is-open {
+      display: flex;
+    }
+
+    .modal-box {
+      position: relative;
+      width: 100%;
+      max-width: 980px;
+      margin: auto;
+      padding: 50px;
+      border-radius: var(--radius-large);
+      background: #ffffff;
+      box-shadow: var(--shadow);
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 22px;
+      right: 22px;
+      width: 40px;
+      height: 40px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #f8f7f4;
+      font-size: 18px;
+      line-height: 1;
+      color: var(--text);
+    }
+
+    .modal-close:hover {
+      background: var(--border);
+    }
+
+    .modal-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 26px;
+      color: var(--text-light);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .modal-back:hover {
+      color: var(--text);
+    }
+
+    /* --- Détail produit --- */
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 50px;
+      align-items: start;
+    }
+
+    .detail-image {
+      overflow: hidden;
+      border-radius: var(--radius-medium);
+      background: #ece9e4;
+    }
+
+    .detail-image img {
+      width: 100%;
+      height: 100%;
+      aspect-ratio: 1 / 1;
+      object-fit: cover;
+    }
+
+    .detail-category {
+      margin-bottom: 12px;
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .detail-title {
+      margin-bottom: 14px;
+      font-size: clamp(32px, 4vw, 44px);
+      font-weight: 900;
+      letter-spacing: -0.03em;
+    }
+
+    .detail-price {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 24px;
+      font-size: 26px;
+      font-weight: 800;
+    }
+
+    .detail-price span {
+      color: var(--text-light);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .detail-divider {
+      height: 1px;
+      margin-bottom: 24px;
+      background: var(--border);
+    }
+
+    .detail-description {
+      margin-bottom: 30px;
+      color: var(--text-light);
+      line-height: 1.75;
+    }
+
+    .detail-specs-label {
+      margin-bottom: 14px;
+      color: var(--text-light);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .detail-specs {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 26px;
+    }
+
+    .detail-spec-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+
+    .detail-spec-row span:first-child {
+      color: var(--text-light);
+    }
+
+    .detail-spec-row span:last-child {
+      font-weight: 700;
+    }
+
+    .detail-stock {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 28px;
+      font-size: 13px;
+      color: var(--text-light);
+    }
+
+    .detail-stock-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #2fa84f;
+    }
+
+    .detail-stock-dot.out {
+      background: #c0392b;
+    }
+
+    /* --- Formulaire de commande --- */
+
+    .order-title {
+      margin-bottom: 26px;
+      font-size: clamp(28px, 3.5vw, 36px);
+      font-weight: 900;
+      letter-spacing: -0.03em;
+    }
+
+    .order-summary {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 30px;
+      padding: 16px;
+      border-radius: 18px;
+      background: #f8f7f4;
+    }
+
+    .order-summary img {
+      width: 64px;
+      height: 64px;
+      border-radius: 12px;
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+
+    .order-summary strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 16px;
+    }
+
+    .order-summary em {
+      font-style: normal;
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .order-form {
+      display: grid;
+      gap: 18px;
+    }
+
+    .order-form label {
+      display: grid;
+      gap: 9px;
+      color: #555555;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .order-form input,
+    .order-form select {
+      width: 100%;
+      height: 52px;
+      padding: 0 15px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      outline: none;
+      background: #f8f7f4;
+      color: var(--text);
+      transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+    }
+
+    .order-form input:focus,
+    .order-form select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px rgba(255, 107, 53, 0.1);
+    }
+
+    .qty-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .qty-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 52px;
+      height: 52px;
+      flex-shrink: 0;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #f8f7f4;
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .qty-btn:hover {
+      background: var(--border);
+    }
+
+    .qty-row input {
+      width: 80px;
+      flex-shrink: 0;
+      text-align: center;
+    }
+
+    .color-swatches {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .color-swatch {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      padding: 0;
+      cursor: pointer;
+      transition: transform 0.15s ease, border-color 0.15s ease;
+    }
+
+    .color-swatch:hover {
+      transform: scale(1.1);
+    }
+
+    .color-swatch.selected {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(255, 107, 53, 0.25);
+    }
+
+    .color-swatch-label {
+      margin-top: 10px;
+      font-size: 13px;
+      color: var(--text-light);
+    }
+
+    .color-swatch-label strong {
+      color: var(--text);
+    }
+
+    .order-total {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 0;
+      margin-top: 6px;
+      border-top: 1px solid var(--border);
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .order-total span:last-child {
+      color: var(--accent);
+    }
+
+    .stripe-note {
+      margin: 4px 0 18px;
+      color: var(--text-light);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .quote-only {
+      padding: 18px;
+      border-radius: 14px;
+      background: #f8f7f4;
+      color: var(--text-light);
+      font-size: 14px;
+      line-height: 1.6;
+      text-align: center;
+    }
+
+    .order-error {
+      padding: 16px;
+      margin-bottom: 18px;
+      border-radius: 14px;
+      background: #fdecea;
+      border: 1px solid #f3c1bb;
+      color: #b3261e;
+      font-size: 13px;
+      text-align: center;
+    }
+
+
+    /* =====================================================
+       RESPONSIVE
+    ===================================================== */
+
+    @media (max-width: 1050px) {
+      .main-nav {
+        gap: 18px;
+      }
+
+      .product-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .craft-wrapper {
+        grid-template-columns: 1fr;
+      }
+
+      .craft-content {
+        padding: 20px 25px 35px;
+      }
+
+      .process-grid,
+      .contact-box {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 800px) {
+      .site-header {
+        top: 8px;
+        margin-top: 8px;
+      }
+
+      .brand {
+        gap: 9px;
+        height: 50px;
+      }
+
+      .brand-logo {
+        width: 40px;
+        height: 40px;
+      }
+
+      .brand-name {
+        font-size: 12px;
+      }
+
+      .menu-toggle {
+        display: block;
+      }
+
+      .main-nav {
+        position: absolute;
+        top: calc(100% + 10px);
+        right: 0;
+        left: 0;
+        display: none;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0;
+        overflow: hidden;
+        padding: 10px;
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        background: #ffffff;
+        box-shadow: var(--shadow);
+      }
+
+      .main-nav.is-open {
+        display: flex;
+      }
+
+      .main-nav a {
+        padding: 16px;
+        border-radius: 12px;
+      }
+
+      .main-nav a:hover {
+        background: #f3f1ed;
+      }
+
+      .hero,
+      .hero-content {
+        min-height: 650px;
+      }
+
+      .hero h1 {
+        font-size: clamp(54px, 16vw, 90px);
+      }
+
+      .catalog-heading {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+
+      .contact-box {
+        padding: 35px 25px;
+      }
+
+      .contact-form {
+        grid-template-columns: 1fr;
+      }
+
+      .contact-form label,
+      .submit-button {
+        grid-column: auto;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        width: min(calc(100% - 24px), var(--container));
+      }
+
+      .section {
+        padding: 65px 0;
+      }
+
+      .hero {
+        width: calc(100% - 20px);
+        border-radius: 26px;
+      }
+
+      .hero-content {
+        padding-inline: 9px;
+      }
+
+      .hero-actions {
+        width: 100%;
+      }
+
+      .hero-actions .button {
+        width: 100%;
+      }
+
+      .product-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .product-image {
+        height: 300px;
+      }
+
+      .craft-wrapper {
+        padding: 12px;
+        border-radius: 26px;
+      }
+
+      .craft-image,
+      .craft-image img {
+        min-height: 420px;
+      }
+
+      .metrics {
+        grid-template-columns: 1fr;
+      }
+
+      .step {
+        grid-template-columns: 55px 1fr;
+        padding: 21px;
+      }
+
+      .contact-box {
+        border-radius: 26px;
+      }
+
+      .footer-inner {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .modal-box {
+        padding: 28px 20px;
+        border-radius: 26px;
+      }
+
+      .detail-grid {
+        grid-template-columns: 1fr;
+        gap: 26px;
+      }
+
+      .order-summary img {
+        width: 52px;
+        height: 52px;
+      }
+    }
+  </style>
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7660635704615099"
+     crossorigin="anonymous"></script>
+
+</head>
+
+<body>
+
+  <!-- =====================================================
+       HEADER
+  ====================================================== -->
+
+  <header class="site-header">
+
+    <a
+      href="index.html#accueil"
+      class="brand"
+      aria-label="Accueil The 3D Printer"
+    >
+      <img
+        class="brand-logo"
+        src="https://media.base44.com/images/public/6a3aa98df65cee997e2fec25/d05e54715_5dc10467-5b9a-48e5-beea-3bd4166c3e64.png"
+        alt="Logo The 3D Printer"
+      >
+      <span class="brand-name">The <span>3D</span> Printer</span>
+    </a>
+
+    <button
+      class="menu-toggle"
+      id="menuToggle"
+      type="button"
+      aria-label="Ouvrir le menu"
+      aria-expanded="false"
+    >
+      <span></span>
+      <span></span>
+    </button>
+
+    <nav
+      class="main-nav"
+      id="mainNav"
+      aria-label="Navigation principale"
+    >
+      <a href="index.html#catalogue">Catalogue</a>
+      <a href="index.html#savoir-faire">Notre savoir-faire</a>
+      <a href="index.html#atelier">Atelier</a>
+      <a href="index.html#contact">Contact</a>
+    </nav>
+
+  </header>
+
+
+  <main>
+
+    <!-- ===================================================
+         HERO
+    ==================================================== -->
+
+    <section class="hero" id="accueil">
+
+      <div class="hero-background"></div>
+
+      <div class="hero-content container">
+
+        <p class="eyebrow">
+          Impression 3D • Design • Prototypage
+        </p>
+
+        <h1>
+          The
+          <br>
+          <span>3D Printer</span>
+        </h1>
+
+        <p class="hero-copy">
+          Impression 3D de précision, créations personnalisées,
+          objets décoratifs, accessoires pratiques et prototypes
+          réalisés avec soin dans notre atelier.
+        </p>
+
+        <div class="hero-actions">
+
+          <a
+            class="button button-primary"
+            href="index.html#catalogue"
+          >
+            Découvrir le catalogue
+          </a>
+
+          <a
+            class="button button-secondary"
+            href="index.html#contact"
+          >
+            Sur mesure
+          </a>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- ===================================================
+         CATALOGUE
+    ==================================================== -->
+
+    <section class="section" id="catalogue">
+
+      <div class="container">
+
+        <div class="catalog-heading">
+
+          <div>
+            <p class="eyebrow">Le catalogue</p>
+
+            <h2>
+              Nos créations.
+            </h2>
+          </div>
+
+          <p>
+            Découvrez nos objets imprimés en 3D :
+            décoration, luminaires, accessoires,
+            rangements, gaming et objets personnalisés.
+          </p>
+
+        </div>
+
+
+        <div class="product-grid" id="productGrid">
+          <p class="products-loading">Chargement du catalogue...</p>
+        </div>
+
+      </div>
+
+    </section>
+ <!-- ===================================================
+         SAVOIR-FAIRE
+    ==================================================== -->
+
+    <section class="craft section" id="savoir-faire">
+
+      <div class="container">
+
+        <div class="craft-wrapper">
+
+          <div class="craft-image">
+
+            <img
+              src="https://i.redd.it/6i2zpm5v33pb1.jpg"
+              alt="Atelier d'impression 3D"
+              loading="lazy"
+            >
+
+          </div>
+
+          <div class="craft-content">
+
+            <p class="eyebrow">Notre savoir-faire</p>
+
+            <h2>
+              Fabriqué
+              <br>
+              <span>couche par couche.</span>
+            </h2>
+
+            <p>
+              Chaque pièce est préparée avec précision,
+              du choix du modèle jusqu’aux dernières finitions.
+            </p>
+
+            <p>
+              Nous réalisons des objets décoratifs,
+              des accessoires pratiques, des prototypes
+              et des créations personnalisées avec du filament recyclé.
+            </p>
+
+            <div class="metrics">
+
+              <div class="metric">
+                <strong>5+</strong>
+                <span>Années d’expérience</span>
+              </div>
+
+              <div class="metric">
+                <strong>24 h</strong>
+                <span>Délai moyen de préparation</span>
+              </div>
+
+              <div class="metric">
+                <strong>100 %</strong>
+                <span>Fabrication locale</span>
+              </div>
+
+              <div class="metric">
+                <strong>Recyclé</strong>
+                <span>Filament PLA / PETG</span>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- ===================================================
+         ATELIER
+    ==================================================== -->
+
+    <section class="section" id="atelier">
+
+      <div class="container process-grid">
+
+        <div class="process-intro">
+
+          <p class="eyebrow">L’atelier</p>
+
+          <h2 class="section-title">
+            De l’idée à
+            <br>
+            l’objet réel.
+          </h2>
+
+          <p>
+            Nous vous accompagnons à chaque étape :
+            définition du besoin, modélisation,
+            préparation, impression et finition.
+          </p>
+
+        </div>
+
+        <div class="steps">
+
+          <article class="step">
+
+            <span class="step-number">01</span>
+
+            <div>
+              <h3>Échange</h3>
+
+              <p>
+                Nous définissons vos besoins,
+                vos dimensions et vos contraintes.
+              </p>
+            </div>
+
+          </article>
+
+          <article class="step">
+
+            <span class="step-number">02</span>
+
+            <div>
+              <h3>Conception</h3>
+
+              <p>
+                Préparation ou adaptation du fichier
+                nécessaire à l’impression.
+              </p>
+            </div>
+
+          </article>
+
+          <article class="step">
+
+            <span class="step-number">03</span>
+
+            <div>
+              <h3>Impression</h3>
+
+              <p>
+                Fabrication, vérification de la pièce
+                et finitions finales.
+              </p>
+            </div>
+
+          </article>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+
+    <!-- ===================================================
+         CONTACT
+    ==================================================== -->
+
+    <section class="section" id="contact">
+
+      <div class="container">
+
+        <div class="contact-box">
+
+          <div class="contact-intro">
+
+            <p class="eyebrow">Création sur mesure</p>
+
+            <h2>
+              Votre projet.
+              <br>
+              <span>Notre précision.</span>
+            </h2>
+
+            <p>
+              Décrivez votre idée, joignez votre fichier 3D si vous en avez un,
+              et nous reviendrons vers vous avec une première estimation.
+            </p>
+
+            <div class="contact-details">
+
+              <a href="mailto:contact@the3dprinter3.dpdns.org">
+                contact@the3dprinter3.dpdns.org
+              </a>
+
+              <span>
+                Reims, Grand Est
+              </span>
+
+            </div>
+
+          </div>
+
+
+          <form
+            class="contact-form"
+            id="contactForm"
+            action="https://api.web3forms.com/submit"
+            method="POST"
+            enctype="multipart/form-data"
+          >
+
+            <input
+              type="hidden"
+              name="access_key"
+              value="51894151-fe7f-45fb-8ce7-60c0f237a742"
+            >
+
+            <input
+              type="hidden"
+              name="subject"
+              value="Nouvelle demande sur mesure — The 3D Printer"
+            >
+
+            <input
+              type="hidden"
+              name="from_name"
+              value="Site The 3D Printer"
+            >
+
+            <input
+              type="checkbox"
+              name="botcheck"
+              class="botcheck"
+              tabindex="-1"
+              autocomplete="off"
+            >
+
+            <label>
+              Votre nom
+
+              <input
+                type="text"
+                name="Nom"
+                placeholder="Nom et prénom"
+                required
+              >
+            </label>
+
+            <label>
+              Votre e-mail
+
+              <input
+                type="email"
+                name="email"
+                placeholder="vous@exemple.fr"
+                required
+              >
+            </label>
+
+            <label class="full">
+              Type de projet
+
+              <select name="Projet">
+                <option>Impression d’un fichier existant</option>
+                <option>Création sur mesure</option>
+                <option>Petite série</option>
+                <option>Autre demande</option>
+              </select>
+            </label>
+
+            <label class="full">
+              Lien vers votre fichier 3D (optionnel)
+
+              <input
+                type="url"
+                id="fileLink"
+                name="Lien_fichier"
+                placeholder="https://drive.google.com/... ou https://wetransfer.com/..."
+              >
+
+              <span class="file-hint">
+                Vous avez un fichier STL, OBJ, 3MF, STEP ou GCODE ? Déposez-le sur
+                <a href="https://www.wetransfer.com" target="_blank" rel="noopener noreferrer">WeTransfer</a>
+                ou Google Drive, puis collez le lien de partage ici.
+              </span>
+            </label>
+
+            <label class="full">
+              Votre message
+
+              <textarea
+                name="Message"
+                placeholder="Décrivez votre projet, les dimensions et la quantité souhaitée…"
+                required
+              ></textarea>
+            </label>
+
+            <button
+              class="button button-primary submit-button"
+              type="submit"
+            >
+              Envoyer la demande
+            </button>
+
+            <div
+              class="form-status full"
+              id="contactResult"
+              role="status"
+              aria-live="polite"
+            ></div>
+
+          </form>
+
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+
+  <!-- =====================================================
+       FOOTER
+  ====================================================== -->
+
+  <footer class="site-footer">
+
+    <div class="container footer-inner">
+
+      <img
+        src="https://media.base44.com/images/public/6a3aa98df65cee997e2fec25/d05e54715_5dc10467-5b9a-48e5-beea-3bd4166c3e64.png"
+        alt="Logo The 3D Printer"
+      >
+
+      <p>
+        Objets, accessoires et prototypes imprimés en 3D.
+      </p>
+
+      <p>
+        © <span id="year"></span> The 3D Printer — Paul Bouden &amp; Frédéric Bouteaux. Tous droits réservés.
+      </p>
+
+    </div>
+
+  </footer>
+
+
+  <!-- =====================================================
+       MODAL PRODUIT / COMMANDE
+  ====================================================== -->
+
+  <div class="modal-overlay" id="productModal">
+    <div class="modal-box">
+      <button class="modal-close" id="modalClose" type="button" aria-label="Fermer">
+        &times;
+      </button>
+      <div id="modalContent"></div>
+    </div>
+  </div>
+
+
+  <script>
+    const menuToggle = document.getElementById("menuToggle");
+    const mainNav = document.getElementById("mainNav");
+
+    menuToggle.addEventListener("click", function () {
+      const isOpen = mainNav.classList.toggle("is-open");
+
+      menuToggle.setAttribute(
+        "aria-expanded",
+        String(isOpen)
+      );
+    });
+
+    mainNav.querySelectorAll("a").forEach(function (link) {
+      link.addEventListener("click", function () {
+        mainNav.classList.remove("is-open");
+        menuToggle.setAttribute("aria-expanded", "false");
+      });
+    });
+
+    document.getElementById("year").textContent =
+      new Date().getFullYear();
+
+    const contactForm = document.getElementById("contactForm");
+    const contactResult = document.getElementById("contactResult");
+    const WEB3FORMS_ENDPOINT = "https://api.web3forms.com/submit";
+
+    function setFormStatus(resultElement, message, type) {
+      resultElement.textContent = message;
+      resultElement.className = "form-status is-visible " +
+        (type === "success" ? "is-success" : "is-error");
+    }
+
+    async function submitWeb3Form(form, resultElement, successMessage) {
+      const submitButton = form.querySelector('[type="submit"]');
+      const originalButtonText = submitButton.textContent.trim();
+
+      submitButton.disabled = true;
+      submitButton.textContent = "Envoi en cours…";
+      resultElement.className = "form-status";
+      resultElement.textContent = "";
+
+      try {
+        const response = await fetch(WEB3FORMS_ENDPOINT, {
+          method: "POST",
+          body: new FormData(form),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          throw new Error(result.message || "L’envoi a échoué.");
+        }
+
+        setFormStatus(resultElement, successMessage, "success");
+        form.reset();
+      } catch (error) {
+        console.error(error);
+        setFormStatus(
+          resultElement,
+          "Une erreur est survenue. Vérifiez votre connexion puis réessayez.",
+          "error"
+        );
+      } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = originalButtonText;
+      }
+    }
+
+    contactForm.addEventListener("submit", function (event) {
+      event.preventDefault();
+
+      submitWeb3Form(
+        contactForm,
+        contactResult,
+        "Votre demande a bien été envoyée. Nous vous répondrons rapidement."
+      );
+    });
+
+
+    /* ===================================================
+       MODAL PRODUIT / COMMANDE
+    ==================================================== */
+
+    const productModal = document.getElementById("productModal");
+    const modalContent = document.getElementById("modalContent");
+    const modalClose = document.getElementById("modalClose");
+
+    function openModal() {
+      productModal.classList.add("is-open");
+      document.body.style.overflow = "hidden";
+    }
+
+    function closeModal() {
+      productModal.classList.remove("is-open");
+      document.body.style.overflow = "";
+    }
+
+    modalClose.addEventListener("click", closeModal);
+
+    productModal.addEventListener("click", function (event) {
+      if (event.target === productModal) {
+        closeModal();
+      }
+    });
+
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape") {
+        closeModal();
+      }
+    });
+
+    function formatPrice(price) {
+      const isNumber = !isNaN(parseFloat(price));
+      return isNumber ? price + " €" : price;
+    }
+
+    function renderProductDetail(data) {
+      const stockLabel = data.stock === "in" ? "En stock" : "Sur commande";
+      const stockDotClass = data.stock === "in" ? "" : "out";
+      const hasColors = data.colorOption && data.colorCodes.length > 0;
+
+      if (hasColors && !data.selectedColor) {
+        data.selectedColor = data.colorCodes[0];
+      }
+
+      modalContent.innerHTML =
+        '<div class="detail-grid">' +
+          '<div class="detail-image">' +
+            '<img src="' + data.image + '" alt="' + data.name + '">' +
+          '</div>' +
+          '<div>' +
+            '<p class="detail-category">' + data.category + '</p>' +
+            '<h2 class="detail-title">' + data.name + '</h2>' +
+            '<div class="detail-price">' + formatPrice(data.price) +
+              (data.priceIsNumber ? '<span>TTC</span>' : '') +
+            '</div>' +
+            '<div class="detail-divider"></div>' +
+            '<p class="detail-description">' + data.desc + '</p>' +
+            '<p class="detail-specs-label">Spécifications</p>' +
+            '<div class="detail-specs">' +
+              '<div class="detail-spec-row"><span>Matériau</span><span>' + data.material + '</span></div>' +
+              '<div class="detail-spec-row"><span>Temps d\'impression</span><span>' + data.time + '</span></div>' +
+              '<div class="detail-spec-row"><span>Dimensions</span><span>' + data.dimensions + '</span></div>' +
+              '<div class="detail-spec-row"><span>Couleurs</span><span>' + data.colors + '</span></div>' +
+            '</div>' +
+            (hasColors
+              ? (
+                '<p class="detail-specs-label">Choisissez une couleur</p>' +
+                '<div class="color-swatches" id="colorSwatches">' +
+                  data.colorCodes.map(function (hex) {
+                    const isSelected = hex === data.selectedColor;
+                    return '<button type="button" class="color-swatch' + (isSelected ? ' selected' : '') +
+                      '" style="background:' + hex + ';" data-hex="' + hex + '" aria-label="' + hex + '"></button>';
+                  }).join("") +
+                '</div>' +
+                '<p class="color-swatch-label">Couleur choisie : <strong id="colorLabel">' + data.selectedColor + '</strong></p>'
+              )
+              : ""
+            ) +
+            '<div class="detail-stock">' +
+              '<span class="detail-stock-dot ' + stockDotClass + '"></span>' + stockLabel +
+            '</div>' +
+            '<button class="button button-primary" id="openOrderForm" style="width:100%;">' +
+              'paiement' +
+            '</button>' +
+          '</div>' +
+        '</div>';
+
+      if (hasColors) {
+        document.querySelectorAll("#colorSwatches .color-swatch").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            data.selectedColor = btn.dataset.hex;
+            document.querySelectorAll("#colorSwatches .color-swatch").forEach(function (b) {
+              b.classList.toggle("selected", b.dataset.hex === data.selectedColor);
+            });
+            document.getElementById("colorLabel").textContent = data.selectedColor;
+          });
+        });
+      }
+
+      document.getElementById("openOrderForm").addEventListener("click", function () {
+        renderOrderForm(data);
+      });
+    }
+
+    function renderOrderForm(data) {
+      const isPayable = data.priceIsNumber;
+      const unitPrice = parseFloat(data.price);
+      const hasColors = data.colorOption && data.colorCodes.length > 0;
+
+      if (hasColors && !data.selectedColor) {
+        data.selectedColor = data.colorCodes[0];
+      }
+
+      modalContent.innerHTML =
+        '<a class="modal-back" id="backToDetail">&larr; Retour au produit</a>' +
+        '<h2 class="order-title">Formulaire de commande</h2>' +
+        '<div class="order-summary">' +
+          '<img src="' + data.image + '" alt="' + data.name + '">' +
+          '<div>' +
+            '<strong>' + data.name + '</strong>' +
+            '<em>' + formatPrice(data.price) + '</em>' +
+          '</div>' +
+        '</div>' +
+        (isPayable
+          ? (
+            '<div class="order-form">' +
+              (hasColors
+                ? (
+                  '<label>Couleur' +
+                    '<div class="color-swatches" id="colorSwatchesOrder">' +
+                      data.colorCodes.map(function (hex) {
+                        const isSelected = hex === data.selectedColor;
+                        return '<button type="button" class="color-swatch' + (isSelected ? ' selected' : '') +
+                          '" style="background:' + hex + ';" data-hex="' + hex + '" aria-label="' + hex + '"></button>';
+                      }).join("") +
+                    '</div>' +
+                    '<span class="color-swatch-label">Couleur choisie : <strong id="colorLabelOrder">' + data.selectedColor + '</strong></span>' +
+                  '</label>'
+                )
+                : ""
+              ) +
+              '<label>Quantité' +
+                '<div class="qty-row">' +
+                  '<button type="button" class="qty-btn" id="qtyMinus">&minus;</button>' +
+                  '<input type="number" id="qtyInput" value="1" min="1" max="99">' +
+                  '<button type="button" class="qty-btn" id="qtyPlus">&plus;</button>' +
+                '</div>' +
+              '</label>' +
+              '<div class="order-total">' +
+                '<span>Total</span>' +
+                '<span id="orderTotal">' + unitPrice.toFixed(2) + ' €</span>' +
+              '</div>' +
+              '<p class="stripe-note">' +
+                'Paiement sécurisé par carte bancaire via Stripe. ' +
+                'Votre adresse de livraison vous sera demandée sur la page de paiement.' +
+              '</p>' +
+              '<div id="orderError"></div>' +
+              '<button class="button button-primary submit-button" id="stripeCheckoutBtn">' +
+                'Payer avec Stripe' +
+              '</button>' +
+            '</div>'
+          )
+          : (
+            '<div class="quote-only">' +
+              'Ce produit est proposé sur devis. ' +
+              'Contactez-nous directement pour recevoir une estimation personnalisée.' +
+              '<br><br>' +
+              '<a class="button button-primary" href="mailto:contact@the3dprinter3.dpdns.org?subject=' +
+                encodeURIComponent('Devis — ' + data.name) + '">Demander un devis</a>' +
+            '</div>'
+          )
+        );
+
+      document.getElementById("backToDetail").addEventListener("click", function () {
+        renderProductDetail(data);
+      });
+
+      if (!isPayable) return;
+
+      if (hasColors) {
+        document.querySelectorAll("#colorSwatchesOrder .color-swatch").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            data.selectedColor = btn.dataset.hex;
+            document.querySelectorAll("#colorSwatchesOrder .color-swatch").forEach(function (b) {
+              b.classList.toggle("selected", b.dataset.hex === data.selectedColor);
+            });
+            document.getElementById("colorLabelOrder").textContent = data.selectedColor;
+          });
+        });
+      }
+
+      const qtyInput = document.getElementById("qtyInput");
+      const orderTotal = document.getElementById("orderTotal");
+
+      function updateTotal() {
+        const qty = parseInt(qtyInput.value, 10) || 1;
+        orderTotal.textContent = (unitPrice * qty).toFixed(2) + " €";
+      }
+
+      document.getElementById("qtyMinus").addEventListener("click", function () {
+        qtyInput.value = Math.max(1, (parseInt(qtyInput.value, 10) || 1) - 1);
+        updateTotal();
+      });
+
+      document.getElementById("qtyPlus").addEventListener("click", function () {
+        qtyInput.value = Math.min(99, (parseInt(qtyInput.value, 10) || 1) + 1);
+        updateTotal();
+      });
+
+      qtyInput.addEventListener("input", updateTotal);
+
+      // --- Paiement via Stripe Payment Link ---
+      document.getElementById("stripeCheckoutBtn").addEventListener("click", function () {
+        const btn = this;
+        const errorBox = document.getElementById("orderError");
+        errorBox.innerHTML = "";
+
+        if (!data.paymentLink || data.paymentLink.indexOf("REMPLACER") === 0) {
+          errorBox.innerHTML =
+            '<div class="order-error">Ce produit n\'est pas encore configuré pour le paiement en ligne. Merci de nous contacter directement.</div>';
+          return;
+        }
+
+        const qty = parseInt(qtyInput.value, 10) || 1;
+
+        btn.disabled = true;
+        btn.textContent = "Redirection...";
+
+        const refParts = [data.name];
+        if (hasColors) refParts.push(data.selectedColor);
+        const clientRef = encodeURIComponent(refParts.join(" - "));
+
+        const separator = data.paymentLink.indexOf("?") === -1 ? "?" : "&";
+        window.location.href =
+          data.paymentLink + separator + "quantity=" + qty + "&client_reference_id=" + clientRef;
+      });
+    }
+
+    /* ===================================================
+       CATALOGUE DYNAMIQUE (Google Sheets → JSON via opensheet.elk.sh)
+    ==================================================== */
+
+    const PRODUCTS_JSON_URL =
+      "https://opensheet.elk.sh/1KHd21NIpAbtMcEUI9NtQ3rvp4pgbZ4xJmQn2-eEI7Ss/1";
+
+    function buildProductCard(p) {
+      const priceIsNumber = !isNaN(parseFloat(p.prix));
+      const priceLabel = priceIsNumber ? p.prix + " €" : p.prix;
+
+      const card = document.createElement("article");
+      card.className = "product-card";
+      card.dataset.name = p.nom;
+      card.dataset.category = p.categorie;
+      card.dataset.price = p.prix;
+      card.dataset.desc = p.description;
+      card.dataset.material = p.materiau;
+      card.dataset.time = p.temps;
+      card.dataset.dimensions = p.dimensions;
+      card.dataset.colors = p.couleurs;
+      card.dataset.stock = p.stock || "in";
+      if (p.lien_stripe) card.dataset.paymentLink = p.lien_stripe;
+      if (p.image_detail) card.dataset.detailImage = p.image_detail;
+      const hasColorOption = p.couleur_selection === "1" || (p.couleur_selection || "").toLowerCase() === "oui";
+      if (hasColorOption && p.couleurs_codes) {
+        card.dataset.colorOption = "1";
+        card.dataset.colorsCodes = p.couleurs_codes;
+      }
+
+      card.innerHTML =
+        '<div class="product-image">' +
+          '<img src="' + p.image + '" alt="' + p.nom + '" loading="lazy">' +
+        '</div>' +
+        '<div class="product-content">' +
+          '<p class="product-category">' + p.categorie + '</p>' +
+          '<h3>' + p.nom + '</h3>' +
+          '<p class="product-price">' + (priceIsNumber ? "À partir de " : "") + priceLabel + '</p>' +
+        '</div>';
+
+      card.addEventListener("click", function () {
+        const catalogImage = card.querySelector("img").getAttribute("src");
+        const data = {
+          name: card.dataset.name,
+          category: card.dataset.category,
+          price: card.dataset.price,
+          priceIsNumber: !isNaN(parseFloat(card.dataset.price)),
+          paymentLink: card.dataset.paymentLink,
+          desc: card.dataset.desc,
+          material: card.dataset.material,
+          time: card.dataset.time,
+          dimensions: card.dataset.dimensions,
+          colors: card.dataset.colors,
+          stock: card.dataset.stock,
+          image: card.dataset.detailImage || catalogImage,
+          colorOption: card.dataset.colorOption === "1",
+          colorCodes: card.dataset.colorsCodes
+            ? card.dataset.colorsCodes.split("/").map(function (c) { return c.trim(); }).filter(Boolean)
+            : [],
+        };
+
+        renderProductDetail(data);
+        openModal();
+      });
+
+      return card;
+    }
+
+    function loadProducts() {
+      const grid = document.getElementById("productGrid");
+
+      fetch(PRODUCTS_JSON_URL, { cache: "no-store" })
+        .then(function (response) {
+          if (!response.ok) throw new Error("Réponse invalide du serveur");
+          return response.json();
+        })
+        .then(function (products) {
+          if (!products.length) {
+            grid.innerHTML = '<p class="products-error">Aucun produit trouvé dans le catalogue.</p>';
+            return;
+          }
+
+          grid.innerHTML = "";
+          products.forEach(function (p) {
+            if (!p.nom) return;
+            grid.appendChild(buildProductCard(p));
+          });
+        })
+        .catch(function (err) {
+          console.error("Erreur de chargement du catalogue :", err);
+          grid.innerHTML =
+            '<p class="products-error">Impossible de charger le catalogue pour le moment. Merci de réessayer un peu plus tard.</p>';
+        });
+    }
+
+    loadProducts();
+  </script>
+
+</body>
+</html>
