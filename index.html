@@ -445,6 +445,7 @@
     }
 
     .product-card {
+      position: relative;
       overflow: hidden;
       border: 1px solid var(--border);
       border-radius: var(--radius-medium);
@@ -512,6 +513,35 @@
       color: var(--text-light);
       font-size: 14px;
       font-weight: 600;
+    }
+
+    .product-stock-badge {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      z-index: 2;
+      padding: 7px 10px;
+      border: 1px solid rgba(47, 168, 79, 0.22);
+      border-radius: 999px;
+      background: rgba(239, 252, 242, 0.94);
+      color: #1d7435;
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      backdrop-filter: blur(8px);
+    }
+
+    .product-stock-badge.is-low {
+      border-color: rgba(218, 140, 0, 0.25);
+      background: rgba(255, 247, 227, 0.96);
+      color: #8a5a00;
+    }
+
+    .product-stock-badge.is-out {
+      border-color: rgba(192, 57, 43, 0.24);
+      background: rgba(253, 236, 234, 0.96);
+      color: #9d2f24;
     }
 
 
@@ -1376,8 +1406,13 @@
       font-weight: 900;
     }
 
-    .cart-qty button:hover {
+    .cart-qty button:hover:not(:disabled) {
       background: var(--border);
+    }
+
+    .cart-qty button:disabled {
+      cursor: not-allowed;
+      opacity: 0.38;
     }
 
     .cart-qty span {
@@ -1445,6 +1480,15 @@
 
     .cart-checkout {
       border: 0;
+    }
+
+    .secure-payment-note {
+      grid-column: 1 / -1;
+      margin-top: 2px;
+      color: var(--text-light);
+      font-size: 11px;
+      font-weight: 700;
+      text-align: center;
     }
 
     .cart-checkout:disabled,
@@ -2239,8 +2283,9 @@
         <div class="cart-actions">
           <button class="cart-clear" id="cartClear" type="button">Vider</button>
           <button class="button button-primary cart-checkout" id="cartCheckout" type="button">
-            Payer avec Stripe
+            Paiement sécurisé
           </button>
+          <p class="secure-payment-note">🔒 Paiement sécurisé</p>
         </div>
       </div>
     </aside>
@@ -2352,7 +2397,7 @@
 
     const CART_STORAGE_KEY = "the3dprinter_cart_v1";
     const CHECKOUT_ENDPOINT = "/api/create-checkout-session";
-    let shippingPrice = 6;
+    let shippingPrice = 4.99;
     let cart = loadCart();
     let toastTimer;
 
@@ -2470,6 +2515,47 @@
       return /^#[0-9a-f]{3,8}$/i.test(color) ? color.toUpperCase() : "";
     }
 
+    function parseStockLimit(value) {
+      const normalized = String(value == null ? "" : value)
+        .trim()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+
+      if (
+        !normalized ||
+        ["illimite", "unlimited", "in", "oui", "yes"].includes(normalized)
+      ) {
+        return null;
+      }
+
+      if (["out", "rupture", "epuise", "non"].includes(normalized)) {
+        return 0;
+      }
+
+      const quantity = Number.parseInt(normalized, 10);
+      return Number.isInteger(quantity) && quantity >= 0 ? quantity : null;
+    }
+
+    function formatStockLabel(stockLimit) {
+      if (stockLimit === null) return "En stock";
+      if (stockLimit <= 0) return "Rupture de stock";
+      if (stockLimit === 1) return "1 exemplaire en stock";
+      return stockLimit + " exemplaires en stock";
+    }
+
+    function formatStockBadge(stockLimit) {
+      if (stockLimit === null) return "En stock";
+      if (stockLimit <= 0) return "Rupture";
+      return stockLimit + " en stock";
+    }
+
+    function getProductCartQuantity(productId) {
+      return cart.reduce(function (sum, item) {
+        return item.id === productId ? sum + item.quantity : sum;
+      }, 0);
+    }
+
     function showToast(message, type) {
       clearTimeout(toastTimer);
       shopToast.textContent = message;
@@ -2494,6 +2580,10 @@
               price: Number(item.price),
               image: String(item.image || ""),
               color: String(item.color || ""),
+              stockLimit:
+                item.stockLimit === null || item.stockLimit === undefined
+                  ? null
+                  : Math.max(0, parseInt(item.stockLimit, 10) || 0),
               quantity: Math.min(99, Math.max(1, parseInt(item.quantity, 10) || 1)),
             };
           })
@@ -2537,13 +2627,30 @@
         return;
       }
 
+      const productId = String(data.id || data.name);
+      const stockLimit = data.stockLimit;
+      const requestedQuantity = Math.min(
+        99,
+        Math.max(1, parseInt(quantity, 10) || 1)
+      );
+      const alreadyInCart = getProductCartQuantity(productId);
+      const available =
+        stockLimit === null ? 99 : Math.max(0, stockLimit - alreadyInCart);
+
+      if (available <= 0) {
+        showToast("Stock maximum déjà atteint pour " + data.name + ".", "error");
+        return;
+      }
+
+      const quantityToAdd = Math.min(requestedQuantity, available);
       const item = {
-        id: String(data.id || data.name),
+        id: productId,
         name: String(data.name),
         price: price,
         image: safeImageUrl(data.image),
         color: data.selectedColor || "",
-        quantity: Math.min(99, Math.max(1, parseInt(quantity, 10) || 1)),
+        stockLimit: stockLimit,
+        quantity: quantityToAdd,
       };
 
       const key = cartItemKey(item);
@@ -2552,7 +2659,8 @@
       });
 
       if (existing) {
-        existing.quantity = Math.min(99, existing.quantity + item.quantity);
+        existing.quantity = Math.min(99, existing.quantity + quantityToAdd);
+        existing.stockLimit = stockLimit;
       } else {
         cart.push(item);
       }
@@ -2560,7 +2668,15 @@
       saveCart();
       renderCart();
       closeModal();
-      showToast(item.name + " ajouté au panier.", "success");
+
+      if (quantityToAdd < requestedQuantity) {
+        showToast(
+          "Seulement " + quantityToAdd + " unité(s) ajoutée(s) : stock limité.",
+          "error"
+        );
+      } else {
+        showToast(item.name + " ajouté au panier.", "success");
+      }
     }
 
     function setCartError(message) {
@@ -2604,6 +2720,10 @@
                       ? '<p class="cart-item-meta">Couleur : ' + escapeHtml(item.color) + '</p>'
                       : ""
                     ) +
+                    (item.stockLimit !== null
+                      ? '<p class="cart-item-meta">Stock total : ' + item.stockLimit + '</p>'
+                      : ""
+                    ) +
                   '</div>' +
                   '<button class="cart-remove" type="button" data-action="remove">Supprimer</button>' +
                 '</div>' +
@@ -2611,7 +2731,10 @@
                   '<div class="cart-qty">' +
                     '<button type="button" data-action="minus" aria-label="Retirer une unité">&minus;</button>' +
                     '<span>' + item.quantity + '</span>' +
-                    '<button type="button" data-action="plus" aria-label="Ajouter une unité">&plus;</button>' +
+                    '<button type="button" data-action="plus" aria-label="Ajouter une unité"' +
+                      (item.stockLimit !== null && getProductCartQuantity(item.id) >= item.stockLimit
+                        ? ' disabled title="Stock maximum atteint"'
+                        : '') + '>&plus;</button>' +
                   '</div>' +
                   '<strong class="cart-line-total">' +
                     formatEuro(item.price * item.quantity) +
@@ -2648,6 +2771,14 @@
       const action = button.dataset.action;
 
       if (action === "plus") {
+        const stockLimit = cart[index].stockLimit;
+        const totalForProduct = getProductCartQuantity(cart[index].id);
+
+        if (stockLimit !== null && totalForProduct >= stockLimit) {
+          setCartError("Stock maximum atteint pour « " + cart[index].name + " ».");
+          return;
+        }
+
         cart[index].quantity = Math.min(99, cart[index].quantity + 1);
       }
 
@@ -2734,15 +2865,21 @@
           renderCart();
         }
       } catch (error) {
-        // La Function n'est peut-être pas encore déployée : on garde 6 € par défaut.
+        // La Function n'est peut-être pas encore déployée : on garde 4,99 € par défaut.
       }
     }
 
     function renderProductDetail(data) {
-      const stockLabel = data.stock === "in" ? "En stock" : "Sur commande";
-      const stockDotClass = data.stock === "in" ? "" : "out";
+      const stockLabel = formatStockLabel(data.stockLimit);
+      const stockDotClass = data.stockLimit === 0 ? "out" : "";
       const hasColors = data.colorOption && data.colorCodes.length > 0;
       const image = safeImageUrl(data.image);
+      const alreadyInCart = getProductCartQuantity(String(data.id || data.name));
+      const remainingStock =
+        data.stockLimit === null
+          ? 99
+          : Math.max(0, data.stockLimit - alreadyInCart);
+      const maxOrderQuantity = Math.min(99, remainingStock);
 
       if (hasColors && !data.selectedColor) {
         data.selectedColor = data.colorCodes[0];
@@ -2792,12 +2929,12 @@
               '<span class="detail-stock-dot ' + stockDotClass + '"></span>' +
               escapeHtml(stockLabel) +
             '</div>' +
-            (data.priceIsNumber
+            (data.priceIsNumber && remainingStock > 0
               ? (
                 '<label class="detail-specs-label" for="detailQty">Quantité</label>' +
                 '<div class="qty-row" style="margin-bottom:16px;">' +
                   '<button type="button" class="qty-btn" id="detailQtyMinus">&minus;</button>' +
-                  '<input type="number" id="detailQty" value="1" min="1" max="99" ' +
+                  '<input type="number" id="detailQty" value="1" min="1" max="' + maxOrderQuantity + '" ' +
                     'style="height:52px;padding:0 12px;border:1px solid var(--border);border-radius:14px;text-align:center;">' +
                   '<button type="button" class="qty-btn" id="detailQtyPlus">&plus;</button>' +
                 '</div>' +
@@ -2805,9 +2942,12 @@
                   'Ajouter au panier' +
                 '</button>'
               )
-              : (
+              : (data.priceIsNumber
+                ? '<button class="button button-primary" style="width:100%;" type="button" disabled>Rupture de stock</button>'
+                : (
                 '<a class="button button-primary" style="width:100%;" href="mailto:contact@the3dprinter3.dpdns.org?subject=' +
                   encodeURIComponent("Devis — " + data.name) + '">Demander un devis</a>'
+                )
               )
             ) +
           '</div>' +
@@ -2825,7 +2965,7 @@
         });
       }
 
-      if (!data.priceIsNumber) return;
+      if (!data.priceIsNumber || remainingStock <= 0) return;
 
       const qtyInput = document.getElementById("detailQty");
 
@@ -2834,11 +2974,17 @@
       });
 
       document.getElementById("detailQtyPlus").addEventListener("click", function () {
-        qtyInput.value = Math.min(99, (parseInt(qtyInput.value, 10) || 1) + 1);
+        qtyInput.value = Math.min(
+          maxOrderQuantity,
+          (parseInt(qtyInput.value, 10) || 1) + 1
+        );
       });
 
       qtyInput.addEventListener("change", function () {
-        qtyInput.value = Math.min(99, Math.max(1, parseInt(qtyInput.value, 10) || 1));
+        qtyInput.value = Math.min(
+          maxOrderQuantity,
+          Math.max(1, parseInt(qtyInput.value, 10) || 1)
+        );
       });
 
       document.getElementById("addToCartButton").addEventListener("click", function () {
@@ -2858,6 +3004,10 @@
       const priceIsNumber = Number.isFinite(numericPrice);
       const priceLabel = priceIsNumber ? formatEuro(numericPrice) : String(p.prix || "");
       const image = safeImageUrl(p.image);
+      const stockLimit = parseStockLimit(p.stock);
+      const stockBadgeClass =
+        stockLimit === 0 ? " is-out" :
+        (stockLimit !== null && stockLimit <= 3 ? " is-low" : "");
 
       const card = document.createElement("article");
       card.className = "product-card";
@@ -2870,7 +3020,7 @@
       card.dataset.time = p.temps || "";
       card.dataset.dimensions = p.dimensions || "";
       card.dataset.colors = p.couleurs || "";
-      card.dataset.stock = p.stock || "in";
+      card.dataset.stock = p.stock || "illimite";
       if (p.image_detail) card.dataset.detailImage = p.image_detail;
 
       const hasColorOption =
@@ -2883,6 +3033,9 @@
       }
 
       card.innerHTML =
+        '<span class="product-stock-badge' + stockBadgeClass + '">' +
+          escapeHtml(formatStockBadge(stockLimit)) +
+        '</span>' +
         '<div class="product-image">' +
           (image
             ? '<img src="' + escapeHtml(image) + '" alt="' + escapeHtml(p.nom) + '" loading="lazy">'
@@ -2911,6 +3064,7 @@
           dimensions: card.dataset.dimensions,
           colors: card.dataset.colors,
           stock: card.dataset.stock,
+          stockLimit: parseStockLimit(card.dataset.stock),
           image: card.dataset.detailImage || (catalogImage ? catalogImage.getAttribute("src") : ""),
           colorOption: card.dataset.colorOption === "1",
           colorCodes: card.dataset.colorsCodes
@@ -2961,10 +3115,8 @@
       const paymentStatus = params.get("paiement");
 
       if (paymentStatus === "succes") {
-        cart = [];
-        saveCart();
-        renderCart();
-        showToast("Paiement terminé. Merci pour votre commande !", "success");
+        window.location.replace("/merci.html");
+        return;
       }
 
       if (paymentStatus === "annule") {
