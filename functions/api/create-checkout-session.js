@@ -1,7 +1,7 @@
 const DEFAULT_PRODUCTS_JSON_URL =
   "https://opensheet.elk.sh/1KHd21NIpAbtMcEUI9NtQ3rvp4pgbZ4xJmQn2-eEI7Ss/1";
 
-const DEFAULT_SHIPPING_CENTS = 600;
+const DEFAULT_SHIPPING_CENTS = 499;
 const MAX_CART_LINES = 30;
 const MAX_QUANTITY = 99;
 
@@ -59,6 +59,28 @@ function parseEuroToCents(value) {
 function normaliseColor(value) {
   const color = String(value || "").trim().toUpperCase();
   return /^#[0-9A-F]{3,8}$/.test(color) ? color : "";
+}
+
+function parseStockLimit(value) {
+  const normalized = String(value == null ? "" : value)
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+  if (
+    !normalized ||
+    ["illimite", "unlimited", "in", "oui", "yes"].includes(normalized)
+  ) {
+    return null;
+  }
+
+  if (["out", "rupture", "epuise", "non"].includes(normalized)) {
+    return 0;
+  }
+
+  const quantity = Number.parseInt(normalized, 10);
+  return Number.isInteger(quantity) && quantity >= 0 ? quantity : null;
 }
 
 function buildProductIndexes(products) {
@@ -182,6 +204,7 @@ export async function onRequestPost(context) {
 
   const { byId, byName } = buildProductIndexes(catalogue);
   const verifiedItems = [];
+  const requestedQuantityByProduct = new Map();
 
   for (const requestedItem of payload.items) {
     const id = String(requestedItem.id || "").trim();
@@ -219,6 +242,22 @@ export async function onRequestPost(context) {
       );
     }
 
+    const stockLimit = parseStockLimit(product.stock);
+    const productKey = String(product.id || product.nom).trim();
+    const requestedTotal =
+      (requestedQuantityByProduct.get(productKey) || 0) + quantity;
+
+    if (stockLimit !== null && requestedTotal > stockLimit) {
+      const stockMessage =
+        stockLimit <= 0
+          ? `Le produit « ${product.nom} » est en rupture de stock.`
+          : `Il ne reste que ${stockLimit} exemplaire(s) de « ${product.nom} ».`;
+
+      return jsonResponse({ error: stockMessage }, 400);
+    }
+
+    requestedQuantityByProduct.set(productKey, requestedTotal);
+
     const allowedColors = String(product.couleurs_codes || "")
       .split("/")
       .map(normaliseColor)
@@ -250,7 +289,7 @@ export async function onRequestPost(context) {
   stripeParams.set("phone_number_collection[enabled]", "true");
   stripeParams.set(
     "success_url",
-    `${siteOrigin}/?paiement=succes&session_id={CHECKOUT_SESSION_ID}#catalogue`
+    `${siteOrigin}/merci.html?session_id={CHECKOUT_SESSION_ID}`
   );
   stripeParams.set(
     "cancel_url",
