@@ -3697,6 +3697,7 @@
       aria-label="Navigation principale"
     >
       <a href="index.html#catalogue">Catalogue</a>
+      <a href="mes-commandes.html">Mes commandes</a>
       <a href="index.html#savoir-faire">Notre savoir-faire</a>
       <a href="index.html#atelier">Atelier</a>
       <a href="index.html#faq">FAQ</a>
@@ -5268,7 +5269,7 @@
     function renderProductDetail(data) {
       const stockLabel = formatStockLabel(data.stockLimit);
       const stockDotClass = data.stockLimit === 0 ? "out" : "";
-      const hasColors = data.colorOption && data.colorCodes.length > 0;
+      const hasColors = data.colorCodes.length > 0;
       const primaryImageUltra = safeImageUrl(data.primaryImage || data.image);
       const detailImageUltra = safeImageUrl(data.detailImage);
       const galleryImagesUltra = [primaryImageUltra, detailImageUltra].filter(function (image, index, array) {
@@ -5583,13 +5584,20 @@
       card.dataset.stock = p.stock || "illimite";
       if (p.image_detail) card.dataset.detailImage = p.image_detail;
 
+      const hasColorCodes =
+        Boolean(String(p.couleurs_codes || "").trim());
+
       const hasColorOption =
+        hasColorCodes ||
         p.couleur_selection === "1" ||
         String(p.couleur_selection || "").toLowerCase() === "oui";
 
-      if (hasColorOption && p.couleurs_codes) {
-        card.dataset.colorOption = "1";
+      if (hasColorCodes) {
         card.dataset.colorsCodes = p.couleurs_codes;
+      }
+
+      if (hasColorOption) {
+        card.dataset.colorOption = "1";
       }
 
       card.innerHTML =
@@ -5793,6 +5801,7 @@
         primaryImage: primaryImage,
         detailImage: detailImage,
         colorOption:
+          colorCodes.length > 0 ||
           product.couleur_selection === "1" ||
           String(product.couleur_selection || "").toLowerCase() === "oui",
         colorCodes: colorCodes,
