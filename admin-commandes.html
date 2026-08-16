@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Commandes — Administration</title>
+  <style>
+    :root{--bg:#f4f1ec;--surface:#fff;--text:#171717;--muted:#75716c;--border:#ded9d2;--accent:#ff6b35}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}
+    main{width:min(calc(100% - 30px),1180px);margin:50px auto}.head{display:flex;align-items:end;justify-content:space-between;gap:20px;margin-bottom:20px}
+    h1{font-size:46px;letter-spacing:-.05em;margin:0}.muted{color:var(--muted)}
+    .login,.order{padding:20px;border:1px solid var(--border);border-radius:20px;background:var(--surface)}
+    .login{max-width:520px;margin:80px auto}.row{display:flex;gap:8px}input,select,button{min-height:44px;padding:0 12px;border:1px solid var(--border);border-radius:11px;background:#fff;font:inherit}
+    input{width:100%}button{cursor:pointer;font-weight:800}.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+    .orders{display:grid;gap:12px}.order-top{display:flex;justify-content:space-between;gap:15px;margin-bottom:12px}.order strong{font-size:16px}.email{color:var(--muted);font-size:11px}
+    .items{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}.item{padding:7px 9px;border-radius:9px;background:#f5f3ef;font-size:10px}
+    .controls{display:grid;grid-template-columns:180px 1fr 1fr auto;gap:8px;margin-top:12px}.total{font-size:18px;font-weight:900}
+    .message{margin-top:12px;color:#c43f3a}.hidden{display:none}
+    @media(max-width:800px){.controls{grid-template-columns:1fr}.head{display:grid}}
+  </style>
+</head>
+<body>
+  <main>
+    <section class="login" id="login">
+      <h1>Commandes</h1>
+      <p class="muted">Entre ton mot de passe administrateur.</p>
+      <div class="row" style="margin-top:16px">
+        <input id="token" type="password" placeholder="Mot de passe admin">
+        <button class="primary" id="connect">Ouvrir</button>
+      </div>
+      <div class="message" id="loginMessage"></div>
+    </section>
+
+    <section class="hidden" id="dashboard">
+      <div class="head">
+        <div>
+          <h1>Commandes</h1>
+          <p class="muted">Mets à jour la préparation et le suivi des clients.</p>
+        </div>
+        <button id="refresh">Actualiser</button>
+      </div>
+      <div class="orders" id="orders"></div>
+    </section>
+  </main>
+
+  <script>
+    const login = document.getElementById("login");
+    const dashboard = document.getElementById("dashboard");
+    const ordersNode = document.getElementById("orders");
+    let token = sessionStorage.getItem("t3d_admin_orders_token") || "";
+
+    function money(cents) {
+      return new Intl.NumberFormat("fr-FR", {
+        style: "currency",
+        currency: "EUR"
+      }).format((Number(cents) || 0) / 100);
+    }
+
+    function esc(value) {
+      return String(value ?? "")
+        .replaceAll("&","&amp;").replaceAll("<","&lt;")
+        .replaceAll(">","&gt;").replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    async function load() {
+      const response = await fetch("/api/admin-orders", {
+        headers: { "X-Admin-Token": token }
+      });
+
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        sessionStorage.removeItem("t3d_admin_orders_token");
+        login.classList.remove("hidden");
+        dashboard.classList.add("hidden");
+        document.getElementById("loginMessage").textContent =
+          result.error || "Accès refusé.";
+        return;
+      }
+
+      login.classList.add("hidden");
+      dashboard.classList.remove("hidden");
+
+      const orders = result.orders || [];
+
+      ordersNode.innerHTML = orders.length
+        ? orders.map(function (order) {
+            const items = Array.isArray(order.items) ? order.items : [];
+
+            return (
+              '<article class="order" data-id="' + esc(order.id) + '">' +
+                '<div class="order-top">' +
+                  '<div><strong>' + esc(order.order_number) + '</strong>' +
+                    '<div class="email">' + esc(order.email) + ' • ' +
+                      esc(new Date(order.created_at).toLocaleString("fr-FR")) +
+                    '</div></div>' +
+                  '<div class="total">' + money(order.amount_total) + '</div>' +
+                '</div>' +
+                '<div class="items">' +
+                  items.map(item =>
+                    '<span class="item">' + esc(item.name) + ' × ' +
+                      esc(item.quantity) +
+                      (item.color ? ' • ' + esc(item.color) : '') +
+                    '</span>'
+                  ).join("") +
+                '</div>' +
+                '<div class="controls">' +
+                  '<select data-role="status">' +
+                    ["paid","preparing","ready","shipped","delivered","cancelled"]
+                      .map(status =>
+                        '<option value="' + status + '"' +
+                          (order.status === status ? " selected" : "") +
+                        '>' + ({
+                          paid:"Payée",
+                          preparing:"En préparation",
+                          ready:"Prête à expédier",
+                          shipped:"Expédiée",
+                          delivered:"Livrée",
+                          cancelled:"Annulée"
+                        }[status]) + '</option>'
+                      ).join("") +
+                  '</select>' +
+                  '<input data-role="tracking-number" placeholder="N° de suivi" value="' +
+                    esc(order.tracking_number || "") + '">' +
+                  '<input data-role="tracking-url" placeholder="Lien de suivi https://..." value="' +
+                    esc(order.tracking_url || "") + '">' +
+                  '<button class="primary" data-action="save">Enregistrer</button>' +
+                '</div>' +
+                '<div class="message" data-role="message"></div>' +
+              '</article>'
+            );
+          }).join("")
+        : '<div class="order">Aucune commande.</div>';
+    }
+
+    document.getElementById("connect").addEventListener("click", function () {
+      token = document.getElementById("token").value;
+      sessionStorage.setItem("t3d_admin_orders_token", token);
+      load();
+    });
+
+    document.getElementById("refresh").addEventListener("click", load);
+
+    ordersNode.addEventListener("click", async function (event) {
+      const button = event.target.closest('[data-action="save"]');
+      if (!button) return;
+
+      const card = button.closest(".order");
+      const message = card.querySelector('[data-role="message"]');
+
+      button.disabled = true;
+      message.textContent = "Enregistrement…";
+
+      const response = await fetch("/api/admin-orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Admin-Token": token
+        },
+        body: JSON.stringify({
+          id: card.dataset.id,
+          status: card.querySelector('[data-role="status"]').value,
+          tracking_number: card.querySelector('[data-role="tracking-number"]').value,
+          tracking_url: card.querySelector('[data-role="tracking-url"]').value
+        })
+      });
+
+      const result = await response.json().catch(() => ({}));
+      message.textContent = response.ok
+        ? "Commande mise à jour."
+        : (result.error || "Erreur.");
+
+      button.disabled = false;
+    });
+
+    if (token) load();
+  </script>
+</body>
+</html>

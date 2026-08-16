@@ -1,0 +1,64 @@
+THE 3D PRINTER — VARIABLES CLOUDFLARE
+
+À ouvrir dans :
+Workers & Pages
+→ ton projet
+→ Settings
+→ Variables and Secrets
+→ Add
+
+========================
+VARIABLES TEXTE
+========================
+
+SUPABASE_URL
+https://ohmoynnxfgmardiwahte.supabase.co
+
+SUPABASE_PUBLISHABLE_KEY
+sb_publishable_8jO69KaIC5xCN4YceYxkcg_WaCPL5cB
+
+SITE_URL
+https://the3dprinter3.dpdns.org
+
+SHIPPING_CENTS
+499
+
+PRODUCTS_JSON_URL
+https://opensheet.elk.sh/1KHd21NIpAbtMcEUI9NtQ3rvp4pgbZ4xJmQn2-eEI7Ss/1
+
+========================
+SECRETS — NE PAS METTRE DANS GITHUB
+========================
+
+SUPABASE_SECRET_KEY
+Valeur : ta NOUVELLE clé sb_secret_...
+Type Cloudflare : Secret
+
+STRIPE_SECRET_KEY
+Valeur : ta clé Stripe sk_...
+Type Cloudflare : Secret
+Garde celle qui fonctionne déjà sur ton site.
+
+STRIPE_WEBHOOK_SECRET
+Valeur : whsec_...
+Type Cloudflare : Secret
+Tu obtiens cette valeur après avoir créé le webhook Stripe.
+
+ADMIN_ORDERS_TOKEN
+Valeur : choisis toi-même un mot de passe long et aléatoire.
+Type Cloudflare : Secret
+Il sert pour /admin-commandes.html.
+
+========================
+IMPORTANT
+========================
+
+- Ne mets jamais SUPABASE_SECRET_KEY dans un fichier HTML ou GitHub.
+- Ne mets jamais STRIPE_SECRET_KEY dans un fichier HTML ou GitHub.
+- Ne mets jamais STRIPE_WEBHOOK_SECRET dans un fichier HTML ou GitHub.
+- Ne mets jamais ADMIN_ORDERS_TOKEN dans GitHub.
+- Après avoir ajouté/modifié les variables Cloudflare, redéploie le projet.
+
+Si ta livraison n'est plus 4,99 €, modifie SHIPPING_CENTS :
+499 = 4,99 €
+600 = 6,00 €

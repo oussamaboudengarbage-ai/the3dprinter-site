@@ -2110,7 +2110,7 @@
 
     .trust-strip-inner {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(5, 1fr);
       overflow: hidden;
       border: 1px solid var(--border);
       border-radius: 22px;
@@ -3691,6 +3691,36 @@
       color: var(--accent);
     }
 
+
+    .account-header-button {
+      text-decoration: none;
+    }
+
+    .account-auth-dot {
+      position: absolute;
+      right: 4px;
+      bottom: 4px;
+      width: 9px;
+      height: 9px;
+      border: 2px solid var(--surface);
+      border-radius: 50%;
+      background: #a8a5a0;
+      transition: background .2s ease;
+    }
+
+    .account-header-button.is-connected .account-auth-dot {
+      background: #22a85a;
+    }
+
+
+    .cart-account-note {
+      margin: 0 0 10px;
+      color: var(--text-light);
+      font-size: 10px;
+      line-height: 1.5;
+      text-align: center;
+    }
+
   </style>
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7660635704615099"
      crossorigin="anonymous"></script>
@@ -3732,7 +3762,6 @@
       aria-label="Navigation principale"
     >
       <a href="index.html#catalogue">Catalogue</a>
-      <a href="mes-commandes.html">Mes commandes</a>
       <a href="index.html#savoir-faire">Notre savoir-faire</a>
       <a href="index.html#atelier">Atelier</a>
       <a href="index.html#faq">FAQ</a>
@@ -3748,6 +3777,20 @@
         <span aria-hidden="true">♡</span>
         <span class="header-icon-count" id="favoritesCount">0</span>
       </button>
+
+      <a
+        class="header-icon-button account-header-button"
+        id="accountHeaderButton"
+        href="/compte.html"
+        aria-label="Mon compte"
+        title="Mon compte"
+      >
+        <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true">
+          <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+            d="M20 21a8 8 0 0 0-16 0M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z"/>
+        </svg>
+        <span class="account-auth-dot" id="accountAuthDot" aria-hidden="true"></span>
+      </a>
 
       <button
         class="cart-button"
@@ -4524,9 +4567,69 @@
     <a href="#catalogue"><span class="mobile-nav-icon">⌕</span>Catalogue</a>
     <button id="mobileFavoritesButton" type="button"><span class="mobile-nav-icon">♡</span>Favoris<span class="mobile-nav-count" id="mobileFavoritesCount">0</span></button>
     <button id="mobileCartButton" type="button"><span class="mobile-nav-icon">🛒</span>Panier<span class="mobile-nav-count" id="mobileCartCount">0</span></button>
+    <a href="/compte.html"><span class="mobile-nav-icon">◎</span>Compte</a>
     <a href="#contact"><span class="mobile-nav-icon">✎</span>Sur mesure</a>
   </nav>
 
+
+  <script>
+    window.t3dAuthReady = (async function () {
+      try {
+        const configResponse = await fetch("/api/auth-config", {
+          cache: "no-store"
+        });
+
+        if (!configResponse.ok) {
+          throw new Error("Configuration du compte indisponible.");
+        }
+
+        const config = await configResponse.json();
+
+        const module = await import(
+          "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm"
+        );
+
+        const client = module.createClient(
+          config.url,
+          config.publishableKey,
+          {
+            auth: {
+              persistSession: true,
+              autoRefreshToken: true,
+              detectSessionInUrl: true
+            }
+          }
+        );
+
+        window.t3dSupabase = client;
+
+        function paintAccountState(session) {
+          const button = document.getElementById("accountHeaderButton");
+          if (!button) return;
+
+          const connected = Boolean(session && session.user);
+          button.classList.toggle("is-connected", connected);
+          button.setAttribute(
+            "aria-label",
+            connected ? "Mon compte, connecté" : "Se connecter ou créer un compte"
+          );
+          button.title = connected ? "Mon compte" : "Connexion / inscription";
+        }
+
+        const sessionResult = await client.auth.getSession();
+        paintAccountState(sessionResult.data.session);
+
+        client.auth.onAuthStateChange(function (_event, session) {
+          paintAccountState(session);
+        });
+
+        return client;
+      } catch (error) {
+        console.error("Initialisation compte :", error);
+        return null;
+      }
+    })();
+  </script>
 
   <script>
     /* ===================================================
@@ -5236,14 +5339,38 @@
 
       const originalText = cartCheckout.textContent;
       cartCheckout.disabled = true;
-      cartCheckout.textContent = "Préparation du paiement…";
+      cartCheckout.textContent = "Vérification du compte…";
       setCartError("");
 
       try {
+        const supabase = await window.t3dAuthReady;
+
+        if (!supabase) {
+          throw new Error(
+            "La connexion au compte client est momentanément indisponible."
+          );
+        }
+
+        const sessionResult = await supabase.auth.getSession();
+        const session = sessionResult.data.session;
+
+        if (!session || !session.access_token) {
+          sessionStorage.setItem(
+            "t3d_return_after_login",
+            "/?panier=1"
+          );
+
+          window.location.href = "/compte.html?retour=panier";
+          return;
+        }
+
+        cartCheckout.textContent = "Préparation du paiement…";
+
         const response = await fetch(CHECKOUT_ENDPOINT, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            "Authorization": "Bearer " + session.access_token
           },
           body: JSON.stringify({
             items: cart.map(function (item) {
@@ -5251,18 +5378,26 @@
                 id: item.id,
                 name: item.name,
                 quantity: item.quantity,
-                color: item.color,
+                color: item.color
               };
-            }),
-          }),
+            })
+          })
         });
 
         const result = await response.json().catch(function () {
           return {};
         });
 
+        if (response.status === 401) {
+          await supabase.auth.signOut();
+          window.location.href = "/compte.html?retour=panier";
+          return;
+        }
+
         if (!response.ok || !result.url) {
-          throw new Error(result.error || "Impossible de préparer le paiement.");
+          throw new Error(
+            result.error || "Impossible de préparer le paiement."
+          );
         }
 
         window.location.href = result.url;
