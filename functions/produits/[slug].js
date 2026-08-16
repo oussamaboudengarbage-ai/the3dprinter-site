@@ -292,13 +292,37 @@ function renderPage(product) {
     button{font:inherit;cursor:pointer}
     img{max-width:100%;display:block}
     .container{width:min(calc(100% - 30px),1180px);margin:auto}
-    .top{background:#111;color:#fff;text-align:center;padding:9px 15px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
-    header{position:sticky;top:0;z-index:50;border-bottom:1px solid var(--border);background:color-mix(in srgb,var(--surface) 90%,transparent);backdrop-filter:blur(16px)}
-    .header-inner{min-height:72px;display:flex;align-items:center;justify-content:space-between;gap:20px}
-    .brand{display:flex;align-items:center;gap:10px;font-weight:950;letter-spacing:-.03em}
-    .mark{display:grid;place-items:center;width:38px;height:38px;border-radius:12px;background:#111;color:#fff}
-    nav{display:flex;gap:20px;color:var(--muted);font-size:12px;font-weight:800}
-    .cart-link{padding:11px 15px;border-radius:12px;background:#111;color:#fff;font-size:11px;font-weight:900;text-transform:uppercase}
+    .announcement-bar{
+      display:flex;min-height:38px;align-items:center;justify-content:center;
+      gap:30px;padding:8px 16px;background:#111;color:#fff;font-size:10px;
+      font-weight:800;letter-spacing:.05em;text-transform:uppercase
+    }
+    .announcement-dot{display:inline-block;width:5px;height:5px;margin-right:6px;border-radius:50%;background:var(--accent);vertical-align:middle}
+    .site-header{
+      position:sticky;top:16px;z-index:1000;display:flex;align-items:center;
+      justify-content:space-between;width:min(calc(100% - 32px),1180px);
+      min-height:82px;margin:16px auto 0;padding:12px 18px 12px 14px;
+      border:1px solid rgba(0,0,0,.08);border-radius:24px;
+      background:rgba(255,255,255,.92);box-shadow:0 12px 45px rgba(0,0,0,.08);
+      backdrop-filter:blur(18px)
+    }
+    body.dark .site-header{border-color:var(--border);background:rgba(24,24,26,.92)}
+    .brand{display:flex;align-items:center;gap:12px;height:56px;flex-shrink:0;font-weight:800}
+    .brand-logo{width:48px;height:48px;flex-shrink:0;border:1px solid var(--border);border-radius:12px;background:#fff;object-fit:contain;padding:4px}
+    .brand-name{font-size:15px;font-weight:800;letter-spacing:-.01em;white-space:nowrap;text-transform:uppercase}
+    .brand-name span{color:var(--accent)}
+    .main-nav{display:flex;align-items:center;gap:22px}
+    .main-nav a{position:relative;color:var(--text);font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
+    .main-nav a::after{position:absolute;bottom:-6px;left:0;width:0;height:2px;border-radius:999px;background:var(--accent);content:"";transition:width .25s ease}
+    .main-nav a:hover::after{width:100%}
+    .header-actions{display:flex;align-items:center;gap:9px;flex-shrink:0}
+    .theme-button,.account-link{
+      display:inline-flex;width:44px;height:44px;align-items:center;justify-content:center;
+      border:1px solid var(--border);border-radius:14px;background:var(--surface);
+      color:var(--text);font-size:17px
+    }
+    .cart-link{display:inline-flex;min-height:44px;align-items:center;justify-content:center;gap:7px;padding:0 15px;border-radius:14px;background:#111;color:#fff;font-size:11px;font-weight:900;letter-spacing:.04em;text-transform:uppercase}
+    .cart-badge{display:inline-flex;min-width:22px;height:22px;align-items:center;justify-content:center;padding:0 6px;border-radius:999px;background:var(--accent);color:#fff;font-size:10px}
     .breadcrumb{padding:25px 0 5px;color:var(--muted);font-size:11px;font-weight:700}
     .breadcrumb a:hover{color:var(--accent)}
     main{padding:25px 0 80px}
@@ -347,14 +371,15 @@ function renderPage(product) {
     .back-catalog p{color:rgba(255,255,255,.6);margin-top:6px}
     .back-catalog a{padding:14px 18px;border-radius:13px;background:var(--accent);font-size:11px;font-weight:900;text-transform:uppercase;white-space:nowrap}
     footer{padding:30px 0;border-top:1px solid var(--border);color:var(--muted);font-size:11px;text-align:center}
-    @media(max-width:850px){
-      nav{display:none}
+    @media(max-width:900px){
+      .main-nav{display:none}
       .product{grid-template-columns:1fr;gap:28px}
       .gallery{position:static}
       .reassurance{grid-template-columns:1fr}
     }
     @media(max-width:560px){
-      .brand span:last-child{display:none}
+      .brand-name{display:none}
+      .announcement-bar span:nth-child(2){display:none}
       h1{font-size:44px}
       .specs{grid-template-columns:1fr}
       .qty-row{display:grid;grid-template-columns:120px 1fr}
@@ -363,23 +388,45 @@ function renderPage(product) {
   </style>
 </head>
 <body>
-  <div class="top">Fabrication à Reims • Paiement sécurisé</div>
+  <div class="announcement-bar">
+    <span>Livraison affichée dans le panier</span>
+    <span><i class="announcement-dot"></i> Fabrication locale à Reims</span>
+    <span><i class="announcement-dot"></i> Paiement sécurisé</span>
+  </div>
 
-  <header>
-    <div class="container header-inner">
-      <a class="brand" href="/">
-        <span class="mark">3D</span>
-        <span>The 3D Printer</span>
+  <header class="site-header">
+    <a class="brand" href="/#accueil" aria-label="Accueil The 3D Printer">
+      <img
+        class="brand-logo"
+        src="https://media.base44.com/images/public/6a3aa98df65cee997e2fec25/d05e54715_5dc10467-5b9a-48e5-beea-3bd4166c3e64.png"
+        alt="Logo The 3D Printer"
+      >
+      <span class="brand-name">The <span>3D</span> Printer</span>
+    </a>
+
+    <nav class="main-nav" aria-label="Navigation principale">
+      <a href="/#catalogue">Catalogue</a>
+      <a href="/#savoir-faire">Notre savoir-faire</a>
+      <a href="/#atelier">Atelier</a>
+      <a href="/#faq">FAQ</a>
+      <a href="/#contact">Contact</a>
+    </nav>
+
+    <div class="header-actions">
+      <button class="theme-button" id="productThemeToggle" type="button" aria-label="Thème automatique">
+        <span id="productThemeIcon" aria-hidden="true">◐</span>
+      </button>
+
+      <a class="account-link" href="/compte.html" aria-label="Mon compte" title="Mon compte">
+        <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true">
+          <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+            d="M20 21a8 8 0 0 0-16 0M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z"/>
+        </svg>
       </a>
 
-      <nav aria-label="Navigation principale">
-        <a href="/#catalogue">Catalogue</a>
-        <a href="/mes-commandes.html">Mes commandes</a>
-        <a href="/#faq">FAQ</a>
-        <a href="/#contact">Contact</a>
-      </nav>
-
-      <a class="cart-link" href="/?panier=1">Panier <span id="cartCount">0</span></a>
+      <a class="cart-link" href="/?panier=1">
+        Panier <span class="cart-badge" id="cartCount">0</span>
+      </a>
     </div>
   </header>
 
@@ -611,16 +658,55 @@ function renderPage(product) {
 
     const systemTheme = window.matchMedia("(prefers-color-scheme: dark)");
     const THEME_KEY = "the3dprinter_theme_mode_v2";
+    const productThemeToggle = document.getElementById("productThemeToggle");
+    const productThemeIcon = document.getElementById("productThemeIcon");
 
-    function applyTheme() {
-      const saved = localStorage.getItem(THEME_KEY) || "auto";
-      const dark = saved === "dark" || (saved === "auto" && systemTheme.matches);
-      document.body.classList.toggle("dark", dark);
-      document.documentElement.style.colorScheme = dark ? "dark" : "light";
+    let productThemeMode = localStorage.getItem(THEME_KEY);
+    if (!["auto", "light", "dark"].includes(productThemeMode)) {
+      productThemeMode = "auto";
     }
 
-    applyTheme();
-    systemTheme.addEventListener("change", applyTheme);
+    function resolvedProductTheme(mode) {
+      return mode === "auto"
+        ? (systemTheme.matches ? "dark" : "light")
+        : mode;
+    }
+
+    function applyTheme(mode, save) {
+      productThemeMode = ["auto", "light", "dark"].includes(mode) ? mode : "auto";
+      const resolved = resolvedProductTheme(productThemeMode);
+      const dark = resolved === "dark";
+
+      document.body.classList.toggle("dark", dark);
+      document.documentElement.style.colorScheme = resolved;
+
+      if (productThemeMode === "auto") {
+        productThemeIcon.textContent = "◐";
+      } else if (dark) {
+        productThemeIcon.textContent = "☾";
+      } else {
+        productThemeIcon.textContent = "☀";
+      }
+
+      if (save) localStorage.setItem(THEME_KEY, productThemeMode);
+    }
+
+    applyTheme(productThemeMode, false);
+
+    systemTheme.addEventListener("change", () => {
+      if (productThemeMode === "auto") applyTheme("auto", false);
+    });
+
+    productThemeToggle.addEventListener("click", () => {
+      const next =
+        productThemeMode === "auto"
+          ? "light"
+          : productThemeMode === "light"
+            ? "dark"
+            : "auto";
+      applyTheme(next, true);
+    });
+
     updateCartCount();
   </script>
 </body>
