@@ -1,7 +1,7 @@
 const DEFAULT_PRODUCTS_JSON_URL =
   "https://opensheet.elk.sh/1KHd21NIpAbtMcEUI9NtQ3rvp4pgbZ4xJmQn2-eEI7Ss/1";
 
-const DEFAULT_SHIPPING_CENTS = 499;
+const DEFAULT_SHIPPING_CENTS = 600;
 const MAX_CART_LINES = 30;
 const MAX_QUANTITY = 99;
 
@@ -21,6 +21,7 @@ function jsonResponse(data, status = 200) {
     headers: {
       "Content-Type": "application/json; charset=utf-8",
       "Cache-Control": "no-store",
+      "X-Content-Type-Options": "nosniff",
     },
   });
 }
@@ -59,28 +60,6 @@ function parseEuroToCents(value) {
 function normaliseColor(value) {
   const color = String(value || "").trim().toUpperCase();
   return /^#[0-9A-F]{3,8}$/.test(color) ? color : "";
-}
-
-function parseStockLimit(value) {
-  const normalized = String(value == null ? "" : value)
-    .trim()
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-
-  if (
-    !normalized ||
-    ["illimite", "unlimited", "in", "oui", "yes"].includes(normalized)
-  ) {
-    return null;
-  }
-
-  if (["out", "rupture", "epuise", "non"].includes(normalized)) {
-    return 0;
-  }
-
-  const quantity = Number.parseInt(normalized, 10);
-  return Number.isInteger(quantity) && quantity >= 0 ? quantity : null;
 }
 
 function buildProductIndexes(products) {
@@ -131,9 +110,7 @@ async function getCatalogue(env) {
     env.PRODUCTS_JSON_URL || DEFAULT_PRODUCTS_JSON_URL;
 
   const response = await fetch(productsUrl, {
-    headers: {
-      Accept: "application/json",
-    },
+    headers: { Accept: "application/json" },
   });
 
   if (!response.ok) {
@@ -149,10 +126,84 @@ async function getCatalogue(env) {
   return products;
 }
 
+function requireSupabaseConfig(env) {
+  return Boolean(
+    env.SUPABASE_URL &&
+    env.SUPABASE_PUBLISHABLE_KEY &&
+    env.SUPABASE_SECRET_KEY
+  );
+}
+
+async function getAuthenticatedUser(request, env) {
+  const header = request.headers.get("Authorization") || "";
+
+  if (!header.startsWith("Bearer ")) return null;
+
+  const token = header.slice(7).trim();
+  if (!token) return null;
+
+  const response = await fetch(`${env.SUPABASE_URL}/auth/v1/user`, {
+    headers: {
+      apikey: env.SUPABASE_PUBLISHABLE_KEY,
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+    },
+  });
+
+  if (!response.ok) return null;
+
+  const user = await response.json();
+
+  if (!user || !user.id || !user.email) return null;
+  return user;
+}
+
+async function supabaseInsertOrder(env, order) {
+  const response = await fetch(`${env.SUPABASE_URL}/rest/v1/orders`, {
+    method: "POST",
+    headers: {
+      apikey: env.SUPABASE_SECRET_KEY,
+      "Content-Type": "application/json",
+      Prefer: "return=minimal",
+    },
+    body: JSON.stringify(order),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    console.error("Supabase insert order:", response.status, text);
+    throw new Error("Impossible d’enregistrer la commande.");
+  }
+}
+
+async function expireStripeSession(env, sessionId) {
+  try {
+    await fetch(
+      `https://api.stripe.com/v1/checkout/sessions/${encodeURIComponent(sessionId)}/expire`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${env.STRIPE_SECRET_KEY}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+      }
+    );
+  } catch (error) {
+    console.error("Impossible d’expirer la session Stripe :", error);
+  }
+}
+
+function createOrderNumber() {
+  const date = new Date().toISOString().slice(2, 10).replace(/-/g, "");
+  const suffix = crypto.randomUUID().replace(/-/g, "").slice(0, 6).toUpperCase();
+  return `T3D-${date}-${suffix}`;
+}
+
 export async function onRequestGet(context) {
   return jsonResponse({
     shippingCents: getShippingCents(context.env),
     currency: "eur",
+    accountRequired: true,
   });
 }
 
@@ -161,7 +212,14 @@ export async function onRequestPost(context) {
 
   if (!env.STRIPE_SECRET_KEY) {
     return jsonResponse(
-      { error: "La clé Stripe n'est pas configurée sur Cloudflare." },
+      { error: "Le paiement n’est pas encore configuré." },
+      500
+    );
+  }
+
+  if (!requireSupabaseConfig(env)) {
+    return jsonResponse(
+      { error: "Le compte client n’est pas encore configuré." },
       500
     );
   }
@@ -171,6 +229,15 @@ export async function onRequestPost(context) {
 
   if (originHeader && originHeader !== requestOrigin) {
     return jsonResponse({ error: "Origine de la requête refusée." }, 403);
+  }
+
+  const user = await getAuthenticatedUser(request, env);
+
+  if (!user) {
+    return jsonResponse(
+      { error: "Connectez-vous avant de commander." },
+      401
+    );
   }
 
   let payload;
@@ -204,7 +271,6 @@ export async function onRequestPost(context) {
 
   const { byId, byName } = buildProductIndexes(catalogue);
   const verifiedItems = [];
-  const requestedQuantityByProduct = new Map();
 
   for (const requestedItem of payload.items) {
     const id = String(requestedItem.id || "").trim();
@@ -242,22 +308,6 @@ export async function onRequestPost(context) {
       );
     }
 
-    const stockLimit = parseStockLimit(product.stock);
-    const productKey = String(product.id || product.nom).trim();
-    const requestedTotal =
-      (requestedQuantityByProduct.get(productKey) || 0) + quantity;
-
-    if (stockLimit !== null && requestedTotal > stockLimit) {
-      const stockMessage =
-        stockLimit <= 0
-          ? `Le produit « ${product.nom} » est en rupture de stock.`
-          : `Il ne reste que ${stockLimit} exemplaire(s) de « ${product.nom} ».`;
-
-      return jsonResponse({ error: stockMessage }, 400);
-    }
-
-    requestedQuantityByProduct.set(productKey, requestedTotal);
-
     const allowedColors = String(product.couleurs_codes || "")
       .split("/")
       .map(normaliseColor)
@@ -270,26 +320,67 @@ export async function onRequestPost(context) {
       );
     }
 
+    const stockRaw = String(product.stock ?? "").trim().toLowerCase();
+    const stockNumber = Number.parseInt(stockRaw, 10);
+
+    if (
+      Number.isInteger(stockNumber) &&
+      stockNumber >= 0 &&
+      quantity > stockNumber
+    ) {
+      return jsonResponse(
+        { error: `Stock insuffisant pour « ${product.nom} ».` },
+        400
+      );
+    }
+
     verifiedItems.push({
+      id: String(product.id || product.nom),
+      name: String(product.nom).trim(),
       displayName: color
         ? `${String(product.nom).trim()} — ${color}`
         : String(product.nom).trim(),
       unitAmount,
       quantity,
+      color,
+      image: String(product.image || ""),
     });
   }
+
+  const shippingCents = getShippingCents(env);
+  const subtotalCents = verifiedItems.reduce(
+    (sum, item) => sum + item.unitAmount * item.quantity,
+    0
+  );
+  const totalCents = subtotalCents + shippingCents;
 
   const siteOrigin =
     cleanOrigin(env.SITE_URL || "") || requestOrigin;
 
+  const orderId = crypto.randomUUID();
+  const orderNumber = createOrderNumber();
+
   const stripeParams = new URLSearchParams();
   stripeParams.set("mode", "payment");
   stripeParams.set("locale", "fr");
+  stripeParams.set("client_reference_id", String(user.id));
+  stripeParams.set("customer_email", String(user.email));
   stripeParams.set("billing_address_collection", "required");
   stripeParams.set("phone_number_collection[enabled]", "true");
+
+  stripeParams.set("metadata[order_id]", orderId);
+  stripeParams.set("metadata[order_number]", orderNumber);
+  stripeParams.set("metadata[user_id]", String(user.id));
+
+  stripeParams.set("payment_intent_data[metadata][order_id]", orderId);
+  stripeParams.set(
+    "payment_intent_data[metadata][order_number]",
+    orderNumber
+  );
+
   stripeParams.set(
     "success_url",
-    `${siteOrigin}/merci.html?session_id={CHECKOUT_SESSION_ID}`
+    `${siteOrigin}/compte.html?paiement=succes&commande=${encodeURIComponent(orderNumber)}`
   );
   stripeParams.set(
     "cancel_url",
@@ -306,8 +397,6 @@ export async function onRequestPost(context) {
   verifiedItems.forEach((item, index) => {
     addStripeLineItem(stripeParams, index, item);
   });
-
-  const shippingCents = getShippingCents(env);
 
   if (shippingCents > 0) {
     stripeParams.set(
@@ -345,26 +434,59 @@ export async function onRequestPost(context) {
   } catch (error) {
     console.error("Erreur réseau Stripe :", error);
     return jsonResponse(
-      { error: "Stripe est temporairement inaccessible." },
+      { error: "Le paiement est temporairement inaccessible." },
       502
     );
   }
 
   const stripeResult = await stripeResponse.json();
 
-  if (!stripeResponse.ok || !stripeResult.url) {
+  if (!stripeResponse.ok || !stripeResult.url || !stripeResult.id) {
     console.error("Erreur Stripe :", stripeResult);
     return jsonResponse(
       {
         error:
           stripeResult?.error?.message ||
-          "Stripe n'a pas pu créer la page de paiement.",
+          "Impossible de créer la page de paiement.",
       },
       502
     );
   }
 
-  return jsonResponse({ url: stripeResult.url });
+  try {
+    await supabaseInsertOrder(env, {
+      id: orderId,
+      order_number: orderNumber,
+      user_id: String(user.id),
+      email: String(user.email),
+      status: "payment_pending",
+      payment_status: "unpaid",
+      amount_subtotal: subtotalCents,
+      shipping_cents: shippingCents,
+      amount_total: totalCents,
+      currency: "eur",
+      items: verifiedItems.map((item) => ({
+        id: item.id,
+        name: item.name,
+        quantity: item.quantity,
+        color: item.color,
+        unit_amount: item.unitAmount,
+        image: item.image,
+      })),
+      stripe_session_id: stripeResult.id,
+    });
+  } catch (error) {
+    await expireStripeSession(env, stripeResult.id);
+    return jsonResponse(
+      { error: "La commande n’a pas pu être enregistrée. Réessayez." },
+      502
+    );
+  }
+
+  return jsonResponse({
+    url: stripeResult.url,
+    orderNumber,
+  });
 }
 
 export function onRequestOptions() {
