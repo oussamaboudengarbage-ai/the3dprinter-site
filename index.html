@@ -19,6 +19,7 @@
   <meta property="og:type" content="website">
   <meta name="theme-color" content="#ff6b35">
   <meta name="color-scheme" content="light dark">
+  <link rel="canonical" href="https://the3dprinter3.dpdns.org/">
 
   <link rel="icon" type="image/png" href="https://media.base44.com/images/public/6a3aa98df65cee997e2fec25/d05e54715_5dc10467-5b9a-48e5-beea-3bd4166c3e64.png">
 
@@ -3656,6 +3657,40 @@
       }
     }
 
+
+    /* Liens vers les pages produit */
+    .product-title-link {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .product-title-link:hover {
+      color: var(--accent);
+    }
+
+    .product-page-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      min-height: 38px;
+      margin-top: 8px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--surface);
+      color: var(--text);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: .04em;
+      text-decoration: none;
+      text-transform: uppercase;
+    }
+
+    .product-page-link:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
   </style>
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7660635704615099"
      crossorigin="anonymous"></script>
@@ -5726,6 +5761,26 @@
       return String(product.id || product.nom || "");
     }
 
+    function productSlugMax(product) {
+      const raw = [product.id, product.nom]
+        .filter(function (value) {
+          return String(value || "").trim();
+        })
+        .join("-");
+
+      return String(raw || product.nom || product.id || "produit")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 110) || "produit";
+    }
+
+    function productUrlMax(product) {
+      return "/produits/" + encodeURIComponent(productSlugMax(product));
+    }
+
     function isFavoriteMax(id) {
       return favoritesMax.has(String(id));
     }
@@ -5786,6 +5841,7 @@
 
       return {
         id: productIdMax(product),
+        url: productUrlMax(product),
         name: String(product.nom || ""),
         category: String(product.categorie || ""),
         price: product.prix || "",
@@ -5854,7 +5910,9 @@
         '</div>' +
         '<div class="product-content">' +
           '<p class="product-category">' + escapeHtml(data.category) + '</p>' +
-          '<h3>' + escapeHtml(data.name) + '</h3>' +
+          '<h3><a class="product-title-link" href="' + escapeHtml(data.url) + '">' +
+            escapeHtml(data.name) +
+          '</a></h3>' +
           '<p class="product-price">' +
             (data.priceIsNumber ? 'À partir de ' : '') + escapeHtml(priceLabel) +
           '</p>' +
@@ -5866,6 +5924,7 @@
               '</div>'
             : ''
           ) +
+          '<a class="product-page-link" href="' + escapeHtml(data.url) + '">Voir la fiche complète</a>' +
           '<div class="product-card-actions">' +
             '<button class="quick-add" type="button" data-add-max="' + escapeHtml(data.id) + '"' +
               (data.stockLimit === 0 ? ' disabled' : '') + '>' +
@@ -5933,7 +5992,7 @@
       }
 
       card.addEventListener("click", function (event) {
-        if (event.target.closest("button")) return;
+        if (event.target.closest("button, a")) return;
         openProductMax(product);
       });
 
@@ -6563,6 +6622,11 @@
 
       if (paymentStatus === "annule") {
         showToast("Paiement annulé. Votre panier a été conservé.", "error");
+      }
+
+      if (params.get("panier") === "1") {
+        params.delete("panier");
+        setTimeout(openCart, 120);
       }
 
       if (paymentStatus) {
